@@ -13,6 +13,13 @@ const WEEKS = [
   { w: "3주차", t: "중간점검", d: "각자 진행 상황 시연, 막힌 점 공동 피드백", h: "검증 후 실제 업무에 적용, 진행 보고" },
   { w: "4주차", t: "MVP 결과 발표", d: "각자 MVP 발표, 소요 시간 단축 효과 공유, 다음 적용 업무 정리", h: "최종 보고" }
 ];
+const ABOUT = [
+  ["목적", "AI를 질문·번역·PPT에만 쓰는 데서 벗어나, 실제 내 업무 파일을 AI로 처리하는 경험을 만듭니다."],
+  ["방식", "강의는 1주차 한 번. 이후에는 각자 고른 반복 업무 하나를 바이브 코딩(말로 설명하면 AI가 프로그램을 만들어 주는 방식)으로 직접 만들어 갑니다."],
+  ["결과물", "1인 1개 MVP(최소한으로 동작하는 업무 도구). 매번 AI에게 묻지 않아도 같은 입력이면 같은 결과가 나오는 도구입니다."],
+  ["대상", "영업2팀 전원 7명, 주 1회 60분, 4주"],
+  ["이 페이지", "진행 관리용입니다. 각자 진행 상황을 보고하면, 팀 전체의 과제·진척도·예상 단축 시간이 요약 페이지에 모입니다."]
+];
 const STAGES = FIELDS.find((f) => f.key === "stage").choices;
 const DIRS = FIELDS.find((f) => f.key === "direction").choices;
 
@@ -44,6 +51,11 @@ const errBox = (e) => `<div class="card"><p class="msg err">데이터를 불러�
 async function renderHome() {
   view.innerHTML = `
     <p class="lead">4주 동안 각자 자기 업무 하나를 AI로 자동화합니다. 진행 상황은 팀원 페이지에서 보고하고, 요약 페이지에서 함께 봅니다.</p>
+    <section>
+      <h2>이 챌린지는</h2>
+      <div class="card scroll"><table class="about">${ABOUT.map((a) => `<tr><td class="k">${a[0]}</td><td>${a[1]}</td></tr>`).join("")}
+      </table></div>
+    </section>
     <section>
       <h2>일정 <span class="side">주 1회 60분</span></h2>
       <div class="card scroll"><table class="weeks">
@@ -198,21 +210,49 @@ async function renderMember(id) {
   loadHist(true);
 }
 
-// ── 팀장 요약 ──
+// ── 팀장 요약 (본부장 보고용 보고서 형식, PDF 저장) ──
+const ymdFull = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const isBlocked = (r) => r.blocked && !/^(없음|없다|없습니다|-|n\/a|none)$/i.test(r.blocked.trim());
+
 async function renderSummary() {
-  view.innerHTML = `<p class="lead">팀원별 최신 보고 기준입니다. 행을 누르면 해당 팀원의 보고 이력으로 이동합니다.</p><div id="sum" class="stack"><div class="card"><p class="msg">불러오는 중…</p></div></div>`;
+  view.innerHTML = `
+    <div class="toolbar no-print">
+      <p class="tip">본부장 보고용 보고서 형식입니다. 팀원별 최신 보고 기준이며, 행을 누르면 해당 팀원의 보고 이력으로 이동합니다.</p>
+      <button class="btn dark" id="pdf" type="button">PDF 저장</button>
+    </div>
+    <div id="sum" class="stack"><div class="card"><p class="msg">불러오는 중…</p></div></div>`;
   let reports;
   try { reports = await loadReports(); } catch (e) { $("#sum").innerHTML = errBox(e); return; }
+  const today = new Date();
   const last = latestByMember(reports);
   const rows = MEMBERS.map((m) => ({ m, r: last[m.id] }));
   const got = rows.filter((x) => x.r);
   const avg = got.filter((x) => x.r.progress != null);
   const saved = got.map((x) => monthlySavedHours(x.r)).filter((h) => h != null);
-  const blocked = got.filter((x) => x.r.blocked && !/^(없음|없다|-|n\/a|none)$/i.test(x.r.blocked.trim()));
+  const blocked = got.filter((x) => isBlocked(x.r));
+  const nexts = got.filter((x) => x.r.next);
   const count = (key, list) => list.map((c) => `<span><span class="t">${c}</span><b>${got.filter((x) => x.r[key] === c).length}</b></span>`).join("");
 
+  $("#pdf").onclick = () => {
+    const old = document.title;
+    document.title = `영업2팀 AX 챌린지 진행 보고_${ymdFull(today).replace(/-/g, "")}`; // PDF 파일 이름
+    window.print();
+    document.title = old;
+  };
+
   $("#sum").innerHTML = `
+    <div class="report-head">
+      <h2 class="r-title">영업2팀 AX 챌린지 진행 보고</h2>
+      <span class="r-meta">기준일 ${ymdFull(today)} · 영업2팀 · 보고 ${got.length}/${MEMBERS.length}명</span>
+    </div>
     <section>
+      <h2><span class="no">1</span>개요</h2>
+      <div class="card"><table class="about">${ABOUT.filter((a) => a[0] !== "이 페이지").map((a) => `<tr><td class="k">${a[0]}</td><td>${a[1]}</td></tr>`).join("")}
+        <tr><td class="k">일정</td><td>${WEEKS.map((w) => `${w.w} ${esc(w.t)}`).join(" → ")}</td></tr>
+      </table></div>
+    </section>
+    <section>
+      <h2><span class="no">2</span>진행 현황 요약</h2>
       <div class="card stats">
         <div><span class="l">보고한 인원</span><span class="v">${got.length}<small>/ ${MEMBERS.length}명</small></span></div>
         <div><span class="l">평균 진척도</span><span class="v">${avg.length ? Math.round(avg.reduce((a, x) => a + x.r.progress, 0) / avg.length) : "-"}<small>%</small></span></div>
@@ -220,16 +260,16 @@ async function renderSummary() {
         <div><span class="l">막힌 점이 있는 인원</span><span class="v">${blocked.length}<small>명</small></span></div>
       </div>
       <div class="card">
-        <div class="dist"><b style="color:var(--ink)">현재 단계</b>${count("stage", STAGES)}</div>
-        <div class="dist" style="border-top:1px solid var(--line)"><b style="color:var(--ink)">AX 방향</b>${count("direction", DIRS)}</div>
+        <div class="dist"><b>현재 단계</b>${count("stage", STAGES)}</div>
+        <div class="dist line"><b>AX 방향</b>${count("direction", DIRS)}</div>
       </div>
     </section>
     <section>
-      <h2>팀원별 현황</h2>
-      <div class="card scroll"><table>
-        <tr><th>팀원</th><th>과제 · 대상 업무</th><th>AX 방향 · 도구</th><th>단계</th><th>진척도</th><th class="num">1회 소요 (분)</th><th class="num">월 단축</th><th>막힌 점</th><th class="num">보고일</th></tr>
+      <h2><span class="no">3</span>팀원별 과제 현황</h2>
+      <div class="card scroll"><table class="rep">
+        <tr><th>팀원</th><th>과제 · 대상 업무</th><th>AX 방향 · 도구</th><th>단계</th><th>진척도</th><th class="num">1회 소요 (분)</th><th class="num">월 단축</th><th class="num">보고일</th></tr>
         ${rows.map(({ m, r }) => !r
-          ? `<tr class="link" data-href="#/m/${m.id}"><td class="k">${m.name}</td><td colspan="8"><span class="none">아직 보고 없음</span></td></tr>`
+          ? `<tr class="link" data-href="#/m/${m.id}"><td class="k">${m.name}</td><td colspan="7"><span class="none">아직 보고 없음</span></td></tr>`
           : `<tr class="link" data-href="#/m/${m.id}">
               <td class="k">${m.name}</td>
               <td>${esc(r.title)}<span class="sub">${esc(r.task)}</span></td>
@@ -238,10 +278,23 @@ async function renderSummary() {
               <td>${meter(r.progress)}</td>
               <td class="num">${r.minNow ?? "-"} → ${r.minAfter ?? "-"}<span class="sub">${esc(r.cycle)}</span></td>
               <td class="num">${monthlySavedHours(r) == null ? '<span class="none">-</span>' : hrs(monthlySavedHours(r)) + "시간"}</td>
-              <td>${r.blocked ? `<span class="sub" style="color:var(--ink-2)">${esc(r.blocked)}</span>` : '<span class="none">-</span>'}</td>
               <td class="num">${ymd(r.createdAt)}</td></tr>`).join("")}
       </table></div>
       <p class="tip">월 단축 시간 = (현재 − 예상 1회 소요 분) × 월 반복 횟수(매일 20, 매주 4, 매월 1) ÷ 60. 각자 보고한 예상치이며 실측이 아닙니다.</p>
+    </section>
+    <section>
+      <h2><span class="no">4</span>막힌 점 (이슈)</h2>
+      <div class="card">${blocked.length ? `<table class="rep">
+        <tr><th>팀원</th><th>과제</th><th>막힌 점</th></tr>
+        ${blocked.map(({ m, r }) => `<tr><td class="k">${m.name}</td><td>${esc(r.title)}</td><td class="pre">${esc(r.blocked)}</td></tr>`).join("")}
+      </table>` : '<p class="msg">보고된 막힌 점이 없습니다.</p>'}</div>
+    </section>
+    <section>
+      <h2><span class="no">5</span>다음 계획</h2>
+      <div class="card">${nexts.length ? `<table class="rep">
+        <tr><th>팀원</th><th>과제</th><th>다음 할 것</th></tr>
+        ${nexts.map(({ m, r }) => `<tr><td class="k">${m.name}</td><td>${esc(r.title)}</td><td class="pre">${esc(r.next)}</td></tr>`).join("")}
+      </table>` : '<p class="msg">보고된 다음 계획이 없습니다.</p>'}</div>
     </section>`;
 }
 
