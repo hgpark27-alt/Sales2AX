@@ -16,7 +16,7 @@ service cloud.firestore {
         && d.direction in ['', '완전 자동화', '기준 정리 후 자동화', '사람 판단 보조']
         && str(d.tools, 300)
         && d.stage in ['', '아이디어', '설계', '구현', '수정', '실무 적용', '완료']
-        && numOrNull(d.progress, 0, 100) && numOrNull(d.minNow, 0, 100000) && numOrNull(d.minAfter, 0, 100000)
+        && numOrNull(d.get('progress', null), 0, 100) && numOrNull(d.minNow, 0, 100000) && numOrNull(d.minAfter, 0, 100000)
         && d.cycle in ['', '매일', '매주', '매월']
         && str(d.done, 2000) && str(d.blocked, 2000) && str(d.next, 2000) && str(d.raw, 6000);
     }
