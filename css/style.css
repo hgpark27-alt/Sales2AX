@@ -168,3 +168,4 @@ td.pre { white-space: pre-wrap; }
   .stats > div { padding: 10px 14px; }
   tr.link { cursor: default; }
 }
+.hist-foot { display: flex; justify-content: flex-end; padding: 0 16px 14px; }

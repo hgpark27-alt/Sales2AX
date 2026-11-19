@@ -1,5 +1,5 @@
 import { FIELDS, parseReport, monthlySavedHours, buildPrompt } from "./parse.js";
-import { loadReports, saveReport } from "./store.js";
+import { loadReports, saveReport, deleteReport } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
 const MEMBERS = [
@@ -201,8 +201,16 @@ async function renderMember(id) {
       $("#hist").innerHTML = mine.length ? mine.map((r) => `
         <details><summary><span class="d">${ymdhm(r.createdAt)}</span><span>${esc(r.title)}${r.stage ? ` <span class="pill">${esc(r.stage)}</span>` : ""}</span>${meter(r.progress)}</summary>
         <dl>${FIELDS.filter((f) => !["title", "stage", "progress"].includes(f.key) && r[f.key] != null && r[f.key] !== "")
-          .map((f) => `<dt>${f.label}</dt><dd>${esc(r[f.key])}${f.num && f.key !== "progress" ? "분" : ""}</dd>`).join("")}</dl></details>`).join("")
+          .map((f) => `<dt>${f.label}</dt><dd>${esc(r[f.key])}${f.num && f.key !== "progress" ? "분" : ""}</dd>`).join("")}</dl>
+        <div class="hist-foot"><button class="btn" type="button" data-del="${esc(r.id)}">이 보고 삭제</button></div></details>`).join("")
         : '<p class="msg">아직 보고가 없습니다.</p>';
+      $("#hist").querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+        const r = mine.find((x) => x.id === b.dataset.del);
+        if (!confirm(`${ymdhm(r.createdAt)} 보고 "${r.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`)) return;
+        b.disabled = true;
+        try { await deleteReport(r.id); toast("삭제했습니다"); await loadHist(false); }
+        catch (err) { b.disabled = false; toast("삭제하지 못했습니다: " + (err.code || err.message)); }
+      });
     } catch (e) { $("#hist").innerHTML = `<p class="msg err">이력을 불러오지 못했습니다. (${esc(e.message)})</p>`; }
   }
   updateCalc();

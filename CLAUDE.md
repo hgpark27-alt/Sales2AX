@@ -23,7 +23,7 @@
 ## 3. 구조
 - 배포: GitHub Pages https://hgpark27-alt.github.io/Sales2AX/ (`main` 브랜치 push → 자동 배포)
 - 화면(한 페이지, 주소 끝으로 구분): `#/` 챌린지 홈, `#/m/<id>` 팀원 보고, `#/summary` 팀장 요약
-- 저장: Firebase 프로젝트 `sales2ax-hg27`, Firestore `reports` 컬렉션(위치 nam5). 보고는 쌓이기만 하고 수정·삭제 불가
+- 저장: Firebase 프로젝트 `sales2ax-hg27`, Firestore `reports` 컬렉션(위치 nam5). 보고는 쌓이기만 하고 수정 불가, 삭제는 팀원 페이지 보고 이력에서 (2026-11-19)
 - 파일
   - `js/parse.js` — 보고 형식(`FIELDS`), 붙여넣은 글 해석, 프롬프트 생성, 월 단축 시간 계산
   - `js/app.js` — 화면 3개, 팀원 명단(`MEMBERS`), 일정(`WEEKS`)
