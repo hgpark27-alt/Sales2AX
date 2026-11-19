@@ -47,6 +47,8 @@ function toNumber(v, [lo, hi]) {
 function toChoice(v, choices) {
   const s = squash(v);
   if (!s) return "";
+  // 선택지 목록을 그대로 둔 경우("A / B / C 중 하나")는 고르지 않은 것으로 봄
+  if (choices.filter((c) => s.includes(squash(c))).length > 1 || /중하나/.test(s)) return "";
   return choices.find((c) => s.includes(squash(c))) || choices.find((c) => squash(c).includes(s)) || "";
 }
 
@@ -83,9 +85,11 @@ export function buildPrompt() {
     return f.label + (f.hint || "") + ":" + opt;
   });
   return [
-    "지금까지 진행한 AX 챌린지 과제를 아래 형식 그대로 정리해 줘.",
-    "- 형식 밖의 인사말이나 설명은 쓰지 마.",
-    "- 확인되지 않은 내용은 지어내지 말고 칸을 비워 둬.",
+    "이 대화(현재 세션)에서 진행한 AX 챌린지 과제를 아래 형식 그대로 정리해 줘.",
+    "- 이 세션에서 실제로 한 작업, 만든 파일, 실행 결과만 근거로 써.",
+    "- 이전 대화나 메모리, 추측으로 채우지 마. 이 세션에서 알 수 없는 칸은 비워 둬. (비운 칸은 지난 보고 값이 유지됨)",
+    "- \"이번에 한 것\"은 이 세션에서 한 일만 써.",
+    "- 선택 칸은 보기 중 하나만 남겨. 형식 밖의 인사말이나 설명은 쓰지 마.",
     "- 고객사 이름, 단가, 개인 정보는 쓰지 마.",
     "- 소요 시간은 숫자(분)만, 진척도는 0~100 숫자만.",
     "",

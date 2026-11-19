@@ -1,7 +1,7 @@
 // 실행: node --test test/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseReport, monthlySavedHours } from "../js/parse.js";
+import { parseReport, monthlySavedHours, buildPrompt } from "../js/parse.js";
 
 const SAMPLE = `[AX 챌린지 보고]
 과제명: OPO 자동 갱신
@@ -68,4 +68,17 @@ test("월 단축 시간 = (현재-예상) × 월 횟수 ÷ 60", () => {
   assert.equal(monthlySavedHours({ minNow: 60, minAfter: 20, cycle: "매월" }), 40 / 60);
   assert.equal(monthlySavedHours({ minNow: null, minAfter: 15, cycle: "매주" }), null);
   assert.equal(monthlySavedHours({ minNow: 10, minAfter: 20, cycle: "매주" }), 0);
+});
+
+test("프롬프트는 현재 세션에서 확인된 내용만 쓰게 하고, 그대로 붙여넣어도 형식이 읽힌다", () => {
+  const p = buildPrompt();
+  assert.match(p, /이 대화\(현재 세션\)/);
+  assert.match(p, /이전 대화/);
+  // 빈 형식만 붙여넣으면 아무 칸도 채우지 않아야 함 (지난 보고 값 유지)
+  const r = parseReport(p);
+  assert.equal(r.title, "");
+  assert.equal(r.direction, "");
+  assert.equal(r.stage, "");
+  assert.equal(r.cycle, "");
+  assert.equal(r.progress, null);
 });

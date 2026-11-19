@@ -70,7 +70,7 @@ async function renderHome() {
       <h2>보고 방법</h2>
       <div class="card pad"><ol style="margin:0;padding-left:20px;display:grid;gap:4px">
         <li>내 이름을 눌러 보고 페이지로 이동합니다.</li>
-        <li>프롬프트를 복사해 과제를 진행 중인 AI 에이전트(Claude Code 등)에 붙여넣습니다.</li>
+        <li>프롬프트를 복사해 과제를 진행한 AI 대화(Claude Code 세션 등)에 붙여넣습니다. AI는 그 세션에서 한 일만 정리합니다.</li>
         <li>AI가 정리한 결과를 보고 페이지에 붙여넣으면 칸이 자동으로 채워집니다.</li>
         <li>내용을 확인·수정하고 저장합니다. 저장할 때마다 이력이 쌓입니다.</li>
       </ol></div>
@@ -115,14 +115,14 @@ async function renderMember(id) {
     <section>
       <h2><span class="no">1</span>프롬프트를 AI 에이전트에 넣기</h2>
       <div class="card">
-        <div class="step-h"><span class="lbl">과제를 진행 중인 AI(Claude Code 등)에 그대로 붙여넣으세요</span><span class="btns"><button class="btn dark" id="copy-prompt" type="button">복사</button></span></div>
+        <div class="step-h"><span class="lbl">과제를 진행한 그 대화(세션)에 그대로 붙여넣으세요</span><span class="btns"><button class="btn dark" id="copy-prompt" type="button">복사</button></span></div>
         <pre class="prompt" id="prompt"></pre>
       </div>
     </section>
     <section>
       <h2><span class="no">2</span>AI가 정리한 결과 붙여넣기</h2>
       <div class="card">
-        <div class="step-h"><span class="lbl">붙여넣으면 아래 칸이 자동으로 채워집니다</span><span class="btns"><button class="btn" id="fill" type="button">다시 채우기</button></span></div>
+        <div class="step-h"><span class="lbl">붙여넣으면 아래 칸이 자동으로 채워집니다. AI가 비워 둔 칸은 지난 보고 값이 유지됩니다</span><span class="btns"><button class="btn" id="fill" type="button">다시 채우기</button></span></div>
         <textarea class="paste" id="paste" placeholder="[AX 챌린지 보고]&#10;과제명: …&#10;…&#10;[끝]"></textarea>
       </div>
     </section>
