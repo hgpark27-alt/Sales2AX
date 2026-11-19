@@ -107,7 +107,7 @@ textarea.paste:focus { outline: none; }
 .form .row3 { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
 .form-foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--line); background: var(--head); flex-wrap: wrap; }
 .form-foot .calc { font-size: 13.5px; color: var(--ink-2); }
-.form-foot .btn { margin-left: auto; }
+.form-foot #del { margin-left: auto; }
 .filled { animation: fill 1.2s ease-out; }
 @keyframes fill { from { background: var(--accent-soft); } to { background: #fff; } }
 
@@ -168,4 +168,3 @@ td.pre { white-space: pre-wrap; }
   .stats > div { padding: 10px 14px; }
   tr.link { cursor: default; }
 }
-.hist-foot { display: flex; justify-content: flex-end; padding: 0 16px 14px; }

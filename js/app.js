@@ -1,5 +1,5 @@
 import { FIELDS, parseReport, monthlySavedHours, buildPrompt } from "./parse.js";
-import { loadReports, saveReport, deleteReport } from "./store.js";
+import { loadReports, saveReport } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
 const MEMBERS = [
@@ -41,7 +41,8 @@ function copyText(text) {
 }
 function latestByMember(reports) {
   const m = {};
-  for (const r of reports) if (!m[r.member]) m[r.member] = r; // 최신순이므로 처음 것이 최신
+  for (const r of reports) if (!(r.member in m)) m[r.member] = r; // 최신순이므로 처음 것이 최신
+  for (const k in m) if (!m[k].title) delete m[k]; // 최신이 빈 보고(삭제) → 보고 없음
   return m;
 }
 const errBox = (e) => `<div class="card"><p class="msg err">데이터를 불러오지 못했습니다. 인터넷 연결 또는 회사 네트워크 차단 여부를 확인해 주세요. (${esc(e && e.message || e)})</p></div>`;
@@ -136,7 +137,7 @@ async function renderMember(id) {
           <div class="row3">${fieldInput(byKey.minNow)}${fieldInput(byKey.minAfter)}${fieldInput(byKey.cycle)}</div>
           ${["done", "blocked", "next"].map((k) => fieldInput(byKey[k]).replace("<label", '<label class="wide"')).join("")}
         </div>
-        <div class="form-foot"><span class="calc" id="calc">예상 월 단축 시간: -</span><button class="btn dark" id="save" type="submit">저장</button></div>
+        <div class="form-foot"><span class="calc" id="calc">예상 월 단축 시간: -</span><button class="btn" id="del" type="button">삭제</button><button class="btn dark" id="save" type="submit">저장</button></div>
       </form>
       <p class="tip">처음 열면 마지막 보고 내용이 채워져 있습니다. 바뀐 칸만 고쳐서 저장해도 됩니다.</p>
     </section>
@@ -193,24 +194,30 @@ async function renderMember(id) {
     } finally { btn.disabled = false; btn.textContent = "저장"; }
   });
 
+  $("#del").onclick = async () => {
+    if (!confirm("내 보고를 비울까요? 요약 페이지에 '아직 보고 없음'으로 보입니다.")) return;
+    const blank = Object.fromEntries(FIELDS.map((f) => [f.key, f.num ? null : ""]));
+    const btn = $("#del"); btn.disabled = true;
+    try {
+      await saveReport({ member: m.id, ...blank, raw: "" });
+      for (const f of FIELDS) $("#f-" + f.key).value = "";
+      $("#paste").value = ""; updateCalc();
+      toast("삭제했습니다"); await loadHist(false);
+    } catch (err) { toast("삭제하지 못했습니다: " + (err.code || err.message)); }
+    finally { btn.disabled = false; }
+  };
+
   async function loadHist(prefill) {
     try {
       const mine = (await loadReports()).filter((r) => r.member === m.id);
       $("#last-at").textContent = mine.length ? `최근 보고 ${ymdhm(mine[0].createdAt)}` : "";
       if (prefill && mine[0]) put(mine[0], false);
       $("#hist").innerHTML = mine.length ? mine.map((r) => `
-        <details><summary><span class="d">${ymdhm(r.createdAt)}</span><span>${esc(r.title)}${r.stage ? ` <span class="pill">${esc(r.stage)}</span>` : ""}</span>${meter(r.progress)}</summary>
+        <details><summary><span class="d">${ymdhm(r.createdAt)}</span><span>${r.title ? esc(r.title) : '<span class="none">(삭제)</span>'}${r.stage ? ` <span class="pill">${esc(r.stage)}</span>` : ""}</span>${meter(r.progress)}</summary>
         <dl>${FIELDS.filter((f) => !["title", "stage", "progress"].includes(f.key) && r[f.key] != null && r[f.key] !== "")
           .map((f) => `<dt>${f.label}</dt><dd>${esc(r[f.key])}${f.num && f.key !== "progress" ? "분" : ""}</dd>`).join("")}</dl>
-        <div class="hist-foot"><button class="btn" type="button" data-del="${esc(r.id)}">이 보고 삭제</button></div></details>`).join("")
+</details>`).join("")
         : '<p class="msg">아직 보고가 없습니다.</p>';
-      $("#hist").querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
-        const r = mine.find((x) => x.id === b.dataset.del);
-        if (!confirm(`${ymdhm(r.createdAt)} 보고 "${r.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`)) return;
-        b.disabled = true;
-        try { await deleteReport(r.id); toast("삭제했습니다"); await loadHist(false); }
-        catch (err) { b.disabled = false; toast("삭제하지 못했습니다: " + (err.code || err.message)); }
-      });
     } catch (e) { $("#hist").innerHTML = `<p class="msg err">이력을 불러오지 못했습니다. (${esc(e.message)})</p>`; }
   }
   updateCalc();

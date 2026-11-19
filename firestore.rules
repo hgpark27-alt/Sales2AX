@@ -1,8 +1,8 @@
 rules_version = '2';
 // 영업2팀 AX 챌린지 — 로그인 없는 MVP용 규칙
 // - 누구나 읽기 가능 (공개 주소이므로 고객명·단가 입력 금지)
-// - 정해진 팀원 이름·항목·글자 수만 새로 저장 가능, 수정은 불가
-// - 삭제는 팀원 페이지 보고 이력에서 가능 (2026-11-19 사용자 요청)
+// - 정해진 팀원 이름·항목·글자 수만 새로 저장 가능, 수정·삭제는 불가
+// - "삭제" = 빈 보고 저장 (최신이 빈 보고면 보고 없음으로 표시, 2026-11-19)
 service cloud.firestore {
   match /databases/{db}/documents {
     function str(v, n) { return v is string && v.size() <= n; }
@@ -11,7 +11,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['member','createdAt','title','task','asis','tobe','direction','tools','stage','progress','minNow','minAfter','cycle','done','blocked','next','raw'])
         && d.member in ['dave','ethan','rodrigo','sumin']
         && d.createdAt == request.time
-        && str(d.title, 100) && d.title.size() > 0
+        && str(d.title, 100)
         && str(d.task, 300) && str(d.asis, 1000) && str(d.tobe, 1000)
         && d.direction in ['', '완전 자동화', '기준 정리 후 자동화', '사람 판단 보조']
         && str(d.tools, 300)
@@ -23,7 +23,7 @@ service cloud.firestore {
     match /reports/{id} {
       allow read: if true;
       allow create: if valid(request.resource.data);
-      allow delete: if resource.data.member in ['dave','ethan','rodrigo','sumin'];
+      allow delete: if false;
       allow update: if false;
     }
   }
