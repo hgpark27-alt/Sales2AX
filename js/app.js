@@ -3,9 +3,8 @@ import { loadReports, saveReport } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
 const MEMBERS = [
-  { id: "alex", name: "Alex" }, { id: "dave", name: "Dave" }, { id: "eric", name: "Eric" },
-  { id: "ethan", name: "Ethan" }, { id: "hyerim", name: "HyeRim" }, { id: "rodrigo", name: "Rodrigo" },
-  { id: "sumin", name: "Sumin" }
+  { id: "dave", name: "Dave" }, { id: "ethan", name: "Ethan" },
+  { id: "rodrigo", name: "Rodrigo" }, { id: "sumin", name: "Sumin" }
 ];
 const WEEKS = [
   { w: "1주차", t: "기본 교육 + 주제 선정 과제", d: "AI 기본, 바이브 코딩, 업무 쪼개기, 요청과 검증. 실제 활용 사례 시연", h: "자동화할 본인 업무 주제 1개 선정" },
@@ -17,7 +16,7 @@ const ABOUT = [
   ["목적", "AI를 질문·번역·PPT에만 쓰는 데서 벗어나, 실제 내 업무 파일을 AI로 처리하는 경험을 만듭니다."],
   ["방식", "강의는 1주차 한 번. 이후에는 각자 고른 반복 업무 하나를 바이브 코딩(말로 설명하면 AI가 프로그램을 만들어 주는 방식)으로 직접 만들어 갑니다."],
   ["결과물", "1인 1개 MVP(최소한으로 동작하는 업무 도구). 매번 AI에게 묻지 않아도 같은 입력이면 같은 결과가 나오는 도구입니다."],
-  ["대상", "영업2팀 전원 7명, 주 1회 60분, 4주"],
+  ["대상", `영업2팀 ${MEMBERS.length}명 (${MEMBERS.map((m) => m.name).join(", ")}), 주 1회 60분, 4주`],
   ["이 페이지", "진행 관리용입니다. 각자 진행 상황을 보고하면, 팀 전체의 과제·진척도·예상 단축 시간이 요약 페이지에 모입니다."]
 ];
 const STAGES = FIELDS.find((f) => f.key === "stage").choices;
