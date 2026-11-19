@@ -1,0 +1,28 @@
+rules_version = '2';
+// 영업2팀 AX 챌린지 — 로그인 없는 MVP용 규칙
+// - 누구나 읽기 가능 (공개 주소이므로 고객명·단가 입력 금지)
+// - 정해진 팀원 이름·항목·글자 수만 새로 저장 가능, 수정·삭제는 불가
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function str(v, n) { return v is string && v.size() <= n; }
+    function numOrNull(v, lo, hi) { return v == null || ((v is int || v is float) && v >= lo && v <= hi); }
+    function valid(d) {
+      return d.keys().hasOnly(['member','createdAt','title','task','asis','tobe','direction','tools','stage','progress','minNow','minAfter','cycle','done','blocked','next','raw'])
+        && d.member in ['alex','dave','eric','ethan','hyerim','rodrigo','sumin']
+        && d.createdAt == request.time
+        && str(d.title, 100) && d.title.size() > 0
+        && str(d.task, 300) && str(d.asis, 1000) && str(d.tobe, 1000)
+        && d.direction in ['', '완전 자동화', '기준 정리 후 자동화', '사람 판단 보조']
+        && str(d.tools, 300)
+        && d.stage in ['', '주제 선정', '설계', '첫 버전', '검증', '실무 적용', '완료']
+        && numOrNull(d.progress, 0, 100) && numOrNull(d.minNow, 0, 100000) && numOrNull(d.minAfter, 0, 100000)
+        && d.cycle in ['', '매일', '매주', '매월']
+        && str(d.done, 2000) && str(d.blocked, 2000) && str(d.next, 2000) && str(d.raw, 6000);
+    }
+    match /reports/{id} {
+      allow read: if true;
+      allow create: if valid(request.resource.data);
+      allow update, delete: if false;
+    }
+  }
+}

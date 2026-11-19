@@ -1,0 +1,263 @@
+import { FIELDS, parseReport, monthlySavedHours, buildPrompt } from "./parse.js";
+import { loadReports, saveReport } from "./store.js";
+
+// ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
+const MEMBERS = [
+  { id: "alex", name: "Alex" }, { id: "dave", name: "Dave" }, { id: "eric", name: "Eric" },
+  { id: "ethan", name: "Ethan" }, { id: "hyerim", name: "HyeRim" }, { id: "rodrigo", name: "Rodrigo" },
+  { id: "sumin", name: "Sumin" }
+];
+const WEEKS = [
+  { w: "1주차", t: "기본 교육 + 주제 선정 과제", d: "AI 기본, 바이브 코딩, 업무 쪼개기, 요청과 검증. 실제 활용 사례 시연", h: "자동화할 본인 업무 주제 1개 선정" },
+  { w: "2주차", t: "주제 발표 + 대표 빌드 시연", d: "각자 주제 발표. 진행자가 본인 주제를 실제로 빌드하는 과정 시연. 자동화 도구 개론(GitHub, Firebase, VBA, Python, AHK 등)과, 고르기 어려운 것은 AI에게 묻는 요청 구체화 방법", h: "첫 버전 만들기, 이 페이지에 진행 보고" },
+  { w: "3주차", t: "중간점검", d: "각자 진행 상황 시연, 막힌 점 공동 피드백", h: "검증 후 실제 업무에 적용, 진행 보고" },
+  { w: "4주차", t: "MVP 결과 발표", d: "각자 MVP 발표, 소요 시간 단축 효과 공유, 다음 적용 업무 정리", h: "최종 보고" }
+];
+const STAGES = FIELDS.find((f) => f.key === "stage").choices;
+const DIRS = FIELDS.find((f) => f.key === "direction").choices;
+
+// ── 공통 도구 ──
+const $ = (s, el = document) => el.querySelector(s);
+const view = $("#view");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ymd = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
+const ymdhm = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const hrs = (h) => h == null ? "-" : (Math.round(h * 10) / 10).toLocaleString("ko-KR");
+const meter = (p) => p == null ? '<span class="none">-</span>'
+  : `<div class="meter" title="진척도 ${p}%"><div class="bar"><i style="width:${p}%"></i></div><span>${p}%</span></div>`;
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 1800); }
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => toast("복사했습니다"));
+  const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); toast("복사했습니다"); } catch (e) { toast("Ctrl+C로 복사하세요"); }
+  ta.remove(); return Promise.resolve();
+}
+function latestByMember(reports) {
+  const m = {};
+  for (const r of reports) if (!m[r.member]) m[r.member] = r; // 최신순이므로 처음 것이 최신
+  return m;
+}
+const errBox = (e) => `<div class="card"><p class="msg err">데이터를 불러오지 못했습니다. 인터넷 연결 또는 회사 네트워크 차단 여부를 확인해 주세요. (${esc(e && e.message || e)})</p></div>`;
+
+// ── 홈 ──
+async function renderHome() {
+  view.innerHTML = `
+    <p class="lead">4주 동안 각자 자기 업무 하나를 AI로 자동화합니다. 진행 상황은 팀원 페이지에서 보고하고, 요약 페이지에서 함께 봅니다.</p>
+    <section>
+      <h2>일정 <span class="side">주 1회 60분</span></h2>
+      <div class="card scroll"><table class="weeks">
+        <tr><th>주차</th><th>주제와 내용</th><th>과제 (다음 주까지)</th></tr>
+        ${WEEKS.map((w) => `<tr><td class="k">${w.w}</td><td><b>${esc(w.t)}</b><span class="sub">${esc(w.d)}</span></td><td>${esc(w.h)}</td></tr>`).join("")}
+      </table></div>
+    </section>
+    <section>
+      <h2>팀원 <span class="side">이름을 누르면 보고 페이지로 이동</span></h2>
+      <div class="card scroll" id="members"><p class="msg">불러오는 중…</p></div>
+    </section>
+    <section>
+      <h2>보고 방법</h2>
+      <div class="card pad"><ol style="margin:0;padding-left:20px;display:grid;gap:4px">
+        <li>내 이름을 눌러 보고 페이지로 이동합니다.</li>
+        <li>프롬프트를 복사해 과제를 진행 중인 AI 에이전트(Claude Code 등)에 붙여넣습니다.</li>
+        <li>AI가 정리한 결과를 보고 페이지에 붙여넣으면 칸이 자동으로 채워집니다.</li>
+        <li>내용을 확인·수정하고 저장합니다. 저장할 때마다 이력이 쌓입니다.</li>
+      </ol></div>
+    </section>`;
+  try {
+    const last = latestByMember(await loadReports());
+    $("#members").innerHTML = `<table>
+      <tr><th>팀원</th><th>과제</th><th>현재 단계</th><th>진척도</th><th class="num">최근 보고</th></tr>
+      ${MEMBERS.map((m) => {
+        const r = last[m.id];
+        return `<tr class="link" data-href="#/m/${m.id}"><td class="k"><a href="#/m/${m.id}">${m.name}</a></td>
+          <td>${r ? esc(r.title) + `<span class="sub">${esc(r.task)}</span>` : '<span class="none">아직 보고 없음</span>'}</td>
+          <td>${r && r.stage ? `<span class="pill">${esc(r.stage)}</span>` : '<span class="none">-</span>'}</td>
+          <td>${meter(r ? r.progress : null)}</td>
+          <td class="num">${r ? ymd(r.createdAt) : '<span class="none">-</span>'}</td></tr>`;
+      }).join("")}
+    </table>`;
+  } catch (e) { $("#members").outerHTML = errBox(e); }
+}
+
+// ── 팀원 보고 페이지 ──
+function fieldInput(f) {
+  const id = "f-" + f.key;
+  const opt = f.key === "title" ? ' <span class="opt">(필수)</span>' : "";
+  let input;
+  if (f.choices) input = `<select id="${id}"><option value="">-</option>${f.choices.map((c) => `<option>${c}</option>`).join("")}</select>`;
+  else if (f.num) input = `<input id="${id}" type="number" inputmode="numeric" min="${f.num[0]}" max="${f.num[1]}">`;
+  else if (["asis", "tobe", "done", "blocked", "next"].includes(f.key)) input = `<textarea id="${id}" maxlength="${f.key === "asis" || f.key === "tobe" ? 1000 : 2000}"></textarea>`;
+  else input = `<input id="${id}" type="text" maxlength="${f.key === "title" ? 100 : 300}">`;
+  return `<label data-k="${f.key}"><span>${f.label}${f.hint ? " " + f.hint : ""}${opt}</span>${input}</label>`;
+}
+
+async function renderMember(id) {
+  const m = MEMBERS.find((x) => x.id === id);
+  if (!m) { location.hash = "#/"; return; }
+  const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
+  view.innerHTML = `
+    <a class="back" href="#/">← 팀원 목록</a>
+    <section>
+      <h2>${m.name}의 AX 과제 <span class="side" id="last-at"></span></h2>
+    </section>
+    <section>
+      <h2><span class="no">1</span>프롬프트를 AI 에이전트에 넣기</h2>
+      <div class="card">
+        <div class="step-h"><span class="lbl">과제를 진행 중인 AI(Claude Code 등)에 그대로 붙여넣으세요</span><span class="btns"><button class="btn dark" id="copy-prompt" type="button">복사</button></span></div>
+        <pre class="prompt" id="prompt"></pre>
+      </div>
+    </section>
+    <section>
+      <h2><span class="no">2</span>AI가 정리한 결과 붙여넣기</h2>
+      <div class="card">
+        <div class="step-h"><span class="lbl">붙여넣으면 아래 칸이 자동으로 채워집니다</span><span class="btns"><button class="btn" id="fill" type="button">다시 채우기</button></span></div>
+        <textarea class="paste" id="paste" placeholder="[AX 챌린지 보고]&#10;과제명: …&#10;…&#10;[끝]"></textarea>
+      </div>
+    </section>
+    <section>
+      <h2><span class="no">3</span>확인하고 저장</h2>
+      <form class="card" id="form" novalidate>
+        <div class="form">
+          ${["title", "task", "asis", "tobe"].map((k) => fieldInput(byKey[k]).replace("<label", '<label class="wide"')).join("")}
+          ${fieldInput(byKey.direction)}${fieldInput(byKey.tools)}
+          ${fieldInput(byKey.stage)}${fieldInput(byKey.progress)}
+          <div class="row3">${fieldInput(byKey.minNow)}${fieldInput(byKey.minAfter)}${fieldInput(byKey.cycle)}</div>
+          ${["done", "blocked", "next"].map((k) => fieldInput(byKey[k]).replace("<label", '<label class="wide"')).join("")}
+        </div>
+        <div class="form-foot"><span class="calc" id="calc">예상 월 단축 시간: -</span><button class="btn dark" id="save" type="submit">저장</button></div>
+      </form>
+      <p class="tip">처음 열면 마지막 보고 내용이 채워져 있습니다. 바뀐 칸만 고쳐서 저장해도 됩니다.</p>
+    </section>
+    <section>
+      <h2>보고 이력</h2>
+      <div class="card hist" id="hist"><p class="msg">불러오는 중…</p></div>
+    </section>`;
+
+  $("#prompt").textContent = buildPrompt();
+  $("#copy-prompt").onclick = () => copyText(buildPrompt());
+
+  const get = () => {
+    const o = {};
+    for (const f of FIELDS) {
+      const v = $("#f-" + f.key).value.trim();
+      o[f.key] = f.num ? (v === "" ? null : Math.min(f.num[1], Math.max(f.num[0], Number(v)))) : v;
+    }
+    return o;
+  };
+  const updateCalc = () => {
+    const h = monthlySavedHours(get());
+    $("#calc").innerHTML = `예상 월 단축 시간: <b>${h == null ? "-" : hrs(h) + "시간"}</b>`;
+  };
+  const put = (r, flash) => {
+    for (const f of FIELDS) {
+      const el = $("#f-" + f.key), v = r[f.key];
+      if (v == null || v === "") continue;
+      el.value = v;
+      if (flash) { el.classList.remove("filled"); void el.offsetWidth; el.classList.add("filled"); }
+    }
+    updateCalc();
+  };
+  const fill = () => {
+    const r = parseReport($("#paste").value);
+    const n = FIELDS.filter((f) => r[f.key] != null && r[f.key] !== "").length;
+    if (!n) { toast("형식에 맞는 칸을 찾지 못했습니다"); return; }
+    put(r, true); toast(`${n}개 칸을 채웠습니다`);
+  };
+  $("#paste").addEventListener("paste", () => setTimeout(fill, 0));
+  $("#fill").onclick = fill;
+  $("#form").addEventListener("input", updateCalc);
+
+  $("#form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const d = get();
+    if (!d.title) { toast("과제명은 꼭 적어 주세요"); $("#f-title").focus(); return; }
+    const btn = $("#save"); btn.disabled = true; btn.textContent = "저장 중…";
+    try {
+      await saveReport({ member: m.id, ...d, raw: $("#paste").value.slice(0, 6000) });
+      toast("저장했습니다"); $("#paste").value = "";
+      await loadHist(false);
+    } catch (err) {
+      toast("저장하지 못했습니다: " + (err.code || err.message));
+    } finally { btn.disabled = false; btn.textContent = "저장"; }
+  });
+
+  async function loadHist(prefill) {
+    try {
+      const mine = (await loadReports()).filter((r) => r.member === m.id);
+      $("#last-at").textContent = mine.length ? `최근 보고 ${ymdhm(mine[0].createdAt)}` : "";
+      if (prefill && mine[0]) put(mine[0], false);
+      $("#hist").innerHTML = mine.length ? mine.map((r) => `
+        <details><summary><span class="d">${ymdhm(r.createdAt)}</span><span>${esc(r.title)}${r.stage ? ` <span class="pill">${esc(r.stage)}</span>` : ""}</span>${meter(r.progress)}</summary>
+        <dl>${FIELDS.filter((f) => !["title", "stage", "progress"].includes(f.key) && r[f.key] != null && r[f.key] !== "")
+          .map((f) => `<dt>${f.label}</dt><dd>${esc(r[f.key])}${f.num && f.key !== "progress" ? "분" : ""}</dd>`).join("")}</dl></details>`).join("")
+        : '<p class="msg">아직 보고가 없습니다.</p>';
+    } catch (e) { $("#hist").innerHTML = `<p class="msg err">이력을 불러오지 못했습니다. (${esc(e.message)})</p>`; }
+  }
+  updateCalc();
+  loadHist(true);
+}
+
+// ── 팀장 요약 ──
+async function renderSummary() {
+  view.innerHTML = `<p class="lead">팀원별 최신 보고 기준입니다. 행을 누르면 해당 팀원의 보고 이력으로 이동합니다.</p><div id="sum" class="stack"><div class="card"><p class="msg">불러오는 중…</p></div></div>`;
+  let reports;
+  try { reports = await loadReports(); } catch (e) { $("#sum").innerHTML = errBox(e); return; }
+  const last = latestByMember(reports);
+  const rows = MEMBERS.map((m) => ({ m, r: last[m.id] }));
+  const got = rows.filter((x) => x.r);
+  const avg = got.filter((x) => x.r.progress != null);
+  const saved = got.map((x) => monthlySavedHours(x.r)).filter((h) => h != null);
+  const blocked = got.filter((x) => x.r.blocked && !/^(없음|없다|-|n\/a|none)$/i.test(x.r.blocked.trim()));
+  const count = (key, list) => list.map((c) => `<span><span class="t">${c}</span><b>${got.filter((x) => x.r[key] === c).length}</b></span>`).join("");
+
+  $("#sum").innerHTML = `
+    <section>
+      <div class="card stats">
+        <div><span class="l">보고한 인원</span><span class="v">${got.length}<small>/ ${MEMBERS.length}명</small></span></div>
+        <div><span class="l">평균 진척도</span><span class="v">${avg.length ? Math.round(avg.reduce((a, x) => a + x.r.progress, 0) / avg.length) : "-"}<small>%</small></span></div>
+        <div><span class="l">예상 월 단축 시간 합계</span><span class="v">${saved.length ? hrs(saved.reduce((a, h) => a + h, 0)) : "-"}<small>시간</small></span></div>
+        <div><span class="l">막힌 점이 있는 인원</span><span class="v">${blocked.length}<small>명</small></span></div>
+      </div>
+      <div class="card">
+        <div class="dist"><b style="color:var(--ink)">현재 단계</b>${count("stage", STAGES)}</div>
+        <div class="dist" style="border-top:1px solid var(--line)"><b style="color:var(--ink)">AX 방향</b>${count("direction", DIRS)}</div>
+      </div>
+    </section>
+    <section>
+      <h2>팀원별 현황</h2>
+      <div class="card scroll"><table>
+        <tr><th>팀원</th><th>과제 · 대상 업무</th><th>AX 방향 · 도구</th><th>단계</th><th>진척도</th><th class="num">1회 소요 (분)</th><th class="num">월 단축</th><th>막힌 점</th><th class="num">보고일</th></tr>
+        ${rows.map(({ m, r }) => !r
+          ? `<tr class="link" data-href="#/m/${m.id}"><td class="k">${m.name}</td><td colspan="8"><span class="none">아직 보고 없음</span></td></tr>`
+          : `<tr class="link" data-href="#/m/${m.id}">
+              <td class="k">${m.name}</td>
+              <td>${esc(r.title)}<span class="sub">${esc(r.task)}</span></td>
+              <td>${r.direction ? `<span class="pill blue">${esc(r.direction)}</span>` : '<span class="none">-</span>'}<span class="sub">${esc(r.tools)}</span></td>
+              <td>${r.stage ? `<span class="pill">${esc(r.stage)}</span>` : '<span class="none">-</span>'}</td>
+              <td>${meter(r.progress)}</td>
+              <td class="num">${r.minNow ?? "-"} → ${r.minAfter ?? "-"}<span class="sub">${esc(r.cycle)}</span></td>
+              <td class="num">${monthlySavedHours(r) == null ? '<span class="none">-</span>' : hrs(monthlySavedHours(r)) + "시간"}</td>
+              <td>${r.blocked ? `<span class="sub" style="color:var(--ink-2)">${esc(r.blocked)}</span>` : '<span class="none">-</span>'}</td>
+              <td class="num">${ymd(r.createdAt)}</td></tr>`).join("")}
+      </table></div>
+      <p class="tip">월 단축 시간 = (현재 − 예상 1회 소요 분) × 월 반복 횟수(매일 20, 매주 4, 매월 1) ÷ 60. 각자 보고한 예상치이며 실측이 아닙니다.</p>
+    </section>`;
+}
+
+// ── 화면 전환 ──
+function route() {
+  const h = location.hash.replace(/^#\/?/, "");
+  const [p, arg] = h.split("/");
+  document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("on", a.dataset.r === (p === "summary" ? "summary" : "home")));
+  window.scrollTo(0, 0);
+  if (p === "m") renderMember(arg);
+  else if (p === "summary") renderSummary();
+  else renderHome();
+}
+view.addEventListener("click", (e) => {
+  const tr = e.target.closest("tr.link");
+  if (tr && !e.target.closest("a")) location.hash = tr.dataset.href;
+});
+window.addEventListener("hashchange", route);
+route();
