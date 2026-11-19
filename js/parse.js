@@ -8,10 +8,10 @@ export const FIELDS = [
   { key: "tobe",      label: "목표 방식" },
   { key: "direction", label: "AX 방향",  choices: ["완전 자동화", "기준 정리 후 자동화", "사람 판단 보조"] },
   { key: "tools",     label: "사용 도구" },
-  { key: "stage",     label: "현재 단계", choices: ["주제 선정", "설계", "첫 버전", "검증", "실무 적용", "완료"] },
-  { key: "progress",  label: "진척도",   num: [0, 100], hint: "(%)" },
-  { key: "minNow",    label: "현재 소요 시간", num: [0, 100000], hint: "(1회, 분)" },
-  { key: "minAfter",  label: "예상 소요 시간", num: [0, 100000], hint: "(1회, 분)" },
+  { key: "stage",     label: "진행 단계", choices: ["아이디어", "설계", "구현", "수정", "실무 적용", "완료"] },
+  // 적용 전 시간은 본인이 직접 입력 (프롬프트에서 뺌, 처음 입력값을 계속 씀)
+  { key: "minNow",    label: "적용 전 소요 시간", num: [0, 100000], hint: "(1회, 분)", manual: true },
+  { key: "minAfter",  label: "적용 후 소요 시간", num: [0, 100000], hint: "(1회, 분)" },
   { key: "cycle",     label: "반복 주기", choices: ["매일", "매주", "매월"] },
   { key: "done",      label: "이번에 한 것" },
   { key: "blocked",   label: "막힌 점" },
@@ -21,6 +21,18 @@ export const FIELDS = [
 export const PER_MONTH = { "매일": 20, "매주": 4, "매월": 1 };
 
 const squash = (s) => s.replace(/\s+/g, "");
+
+// 진행 단계 (진척도 대신). 예전 단계 이름은 새 이름으로 바꿔 읽음 (11/19 이전 보고 호환)
+export const STAGES = FIELDS.find((f) => f.key === "stage").choices;
+const STAGE_ALIAS = { "주제선정": "아이디어", "첫버전": "구현", "검증": "수정" };
+export const normStage = (v) => STAGE_ALIAS[squash(v || "")] || v || "";
+export const stageIndex = (v) => STAGES.indexOf(normStage(v));
+
+// 적용 전 소요 시간 = 처음 입력한 값 (reports는 최신순)
+export function firstMinNow(reports) {
+  for (let i = reports.length - 1; i >= 0; i--) if (reports[i].minNow != null) return reports[i].minNow;
+  return null;
+}
 
 function cleanLine(line) {
   return line
@@ -34,7 +46,7 @@ function matchField(line) {
   const m = line.match(/^([^:：]{1,30})[:：]\s*(.*)$/);
   if (!m) return null;
   const name = squash(m[1].replace(/\(.*?\)|（.*?）/g, ""));
-  const f = FIELDS.find((x) => squash(x.label) === name);
+  const f = FIELDS.find((x) => squash(x.label) === name) || (name === "현재단계" ? FIELDS.find((x) => x.key === "stage") : null);
   return f ? { f, value: m[2].trim() } : null;
 }
 
@@ -66,7 +78,7 @@ export function parseReport(text) {
   for (const f of FIELDS) {
     const v = (raw[f.key] || "").trim();
     if (f.num) out[f.key] = v ? toNumber(v, f.num) : null;
-    else if (f.choices) out[f.key] = toChoice(v, f.choices);
+    else if (f.choices) out[f.key] = toChoice(f.key === "stage" ? normStage(v) : v, f.choices);
     else out[f.key] = v;
   }
   return out;
@@ -80,7 +92,7 @@ export function monthlySavedHours(r) {
 
 // 에이전트에 넣을 프롬프트 (형식은 FIELDS에서 자동 생성)
 export function buildPrompt() {
-  const lines = FIELDS.map((f) => {
+  const lines = FIELDS.filter((f) => !f.manual).map((f) => {
     const opt = f.choices ? " (" + f.choices.join(" / ") + " 중 하나)" : "";
     return f.label + (f.hint || "") + ":" + opt;
   });
@@ -91,7 +103,7 @@ export function buildPrompt() {
     "- \"이번에 한 것\"은 이 세션에서 한 일만 써.",
     "- 선택 칸은 보기 중 하나만 남겨. 형식 밖의 인사말이나 설명은 쓰지 마.",
     "- 고객사 이름, 단가, 개인 정보는 쓰지 마.",
-    "- 소요 시간은 숫자(분)만, 진척도는 0~100 숫자만.",
+    "- 적용 후 소요 시간은 이 세션에서 만든 방식으로 1회 처리할 때 걸리는 시간을 숫자(분)만.",
     "",
     "[AX 챌린지 보고]",
     ...lines,

@@ -1,4 +1,4 @@
-import { FIELDS, parseReport, monthlySavedHours, buildPrompt } from "./parse.js";
+import { FIELDS, STAGES, parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow } from "./parse.js";
 import { loadReports, saveReport } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
@@ -17,9 +17,8 @@ const ABOUT = [
   ["방식", "강의는 1주차 한 번. 이후에는 각자 고른 반복 업무 하나를 바이브 코딩(말로 설명하면 AI가 프로그램을 만들어 주는 방식)으로 직접 만들어 갑니다."],
   ["결과물", "1인 1개 MVP(최소한으로 동작하는 업무 도구). 매번 AI에게 묻지 않아도 같은 입력이면 같은 결과가 나오는 도구입니다."],
   ["대상", `영업2팀 ${MEMBERS.length}명 (${MEMBERS.map((m) => m.name).join(", ")}), 주 1회 60분, 4주`],
-  ["이 페이지", "진행 관리용입니다. 각자 진행 상황을 보고하면, 팀 전체의 과제·진척도·예상 단축 시간이 요약 페이지에 모입니다."]
+  ["이 페이지", "진행 관리용입니다. 각자 진행 상황을 보고하면, 팀 전체의 과제·진행 단계·예상 단축 시간이 요약 페이지에 모입니다."]
 ];
-const STAGES = FIELDS.find((f) => f.key === "stage").choices;
 const DIRS = FIELDS.find((f) => f.key === "direction").choices;
 
 // ── 공통 도구 ──
@@ -29,8 +28,12 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const ymd = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
 const ymdhm = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 const hrs = (h) => h == null ? "-" : (Math.round(h * 10) / 10).toLocaleString("ko-KR");
-const meter = (p) => p == null ? '<span class="none">-</span>'
-  : `<div class="meter" title="진척도 ${p}%"><div class="bar"><i style="width:${p}%"></i></div><span>${p}%</span></div>`;
+// 진행 단계 막대: 단계 수만큼 칸, 현재 단계까지 그 단계 색으로 채움
+const stageBar = (stage) => {
+  const i = stageIndex(stage);
+  if (i < 0) return '<span class="none">-</span>';
+  return `<div class="stagebar s${i}" title="${esc(STAGES[i])} (${i + 1}/${STAGES.length})"><div class="segs">${STAGES.map((_, k) => `<i${k <= i ? ' class="on"' : ""}></i>`).join("")}</div><span>${esc(STAGES[i])}</span></div>`;
+};
 let toastT;
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 1800); }
 function copyText(text) {
@@ -79,13 +82,12 @@ async function renderHome() {
   try {
     const last = latestByMember(await loadReports());
     $("#members").innerHTML = `<table>
-      <tr><th>팀원</th><th>과제</th><th>현재 단계</th><th>진척도</th><th class="num">최근 보고</th></tr>
+      <tr><th>팀원</th><th>과제</th><th>진행 단계</th><th class="num">최근 보고</th></tr>
       ${MEMBERS.map((m) => {
         const r = last[m.id];
         return `<tr class="link" data-href="#/m/${m.id}"><td class="k"><a href="#/m/${m.id}">${m.name}</a></td>
           <td>${r ? esc(r.title) + `<span class="sub">${esc(r.task)}</span>` : '<span class="none">아직 보고 없음</span>'}</td>
-          <td>${r && r.stage ? `<span class="pill">${esc(r.stage)}</span>` : '<span class="none">-</span>'}</td>
-          <td>${meter(r ? r.progress : null)}</td>
+          <td>${stageBar(r && r.stage)}</td>
           <td class="num">${r ? ymd(r.createdAt) : '<span class="none">-</span>'}</td></tr>`;
       }).join("")}
     </table>`;
@@ -95,13 +97,14 @@ async function renderHome() {
 // ── 팀원 보고 페이지 ──
 function fieldInput(f) {
   const id = "f-" + f.key;
-  const opt = f.key === "title" ? ' <span class="opt">(필수)</span>' : "";
+  const opt = ["title", "minNow", "minAfter"].includes(f.key) ? ' <span class="opt">(필수)</span>' : "";
+  const own = f.manual ? '<span class="own">직접 입력 · 처음 값 유지</span>' : "";
   let input;
   if (f.choices) input = `<select id="${id}"><option value="">-</option>${f.choices.map((c) => `<option>${c}</option>`).join("")}</select>`;
   else if (f.num) input = `<input id="${id}" type="number" inputmode="numeric" min="${f.num[0]}" max="${f.num[1]}">`;
   else if (["asis", "tobe", "done", "blocked", "next"].includes(f.key)) input = `<textarea id="${id}" maxlength="${f.key === "asis" || f.key === "tobe" ? 1000 : 2000}"></textarea>`;
   else input = `<input id="${id}" type="text" maxlength="${f.key === "title" ? 100 : 300}">`;
-  return `<label data-k="${f.key}"><span>${f.label}${f.hint ? " " + f.hint : ""}${opt}</span>${input}</label>`;
+  return `<label data-k="${f.key}"><span>${f.label}${f.hint ? " " + f.hint : ""}${opt}${own}</span>${input}</label>`;
 }
 
 async function renderMember(id) {
@@ -133,7 +136,7 @@ async function renderMember(id) {
         <div class="form">
           ${["title", "task", "asis", "tobe"].map((k) => fieldInput(byKey[k]).replace("<label", '<label class="wide"')).join("")}
           ${fieldInput(byKey.direction)}${fieldInput(byKey.tools)}
-          ${fieldInput(byKey.stage)}${fieldInput(byKey.progress)}
+          ${fieldInput(byKey.stage).replace("<label", '<label class="wide"')}
           <div class="row3">${fieldInput(byKey.minNow)}${fieldInput(byKey.minAfter)}${fieldInput(byKey.cycle)}</div>
           ${["done", "blocked", "next"].map((k) => fieldInput(byKey[k]).replace("<label", '<label class="wide"')).join("")}
         </div>
@@ -184,6 +187,8 @@ async function renderMember(id) {
     e.preventDefault();
     const d = get();
     if (!d.title) { toast("과제명은 꼭 적어 주세요"); $("#f-title").focus(); return; }
+    if (d.minNow == null) { toast("적용 전 소요 시간(분)을 적어 주세요"); $("#f-minNow").focus(); return; }
+    if (d.minAfter == null) { toast("적용 후 소요 시간(분)을 적어 주세요"); $("#f-minAfter").focus(); return; }
     const btn = $("#save"); btn.disabled = true; btn.textContent = "저장 중…";
     try {
       await saveReport({ member: m.id, ...d, raw: $("#paste").value.slice(0, 6000) });
@@ -211,11 +216,15 @@ async function renderMember(id) {
     try {
       const mine = (await loadReports()).filter((r) => r.member === m.id);
       $("#last-at").textContent = mine.length ? `최근 보고 ${ymdhm(mine[0].createdAt)}` : "";
-      if (prefill && mine[0]) put(mine[0], false);
+      if (prefill && mine[0]) {
+        put({ ...mine[0], stage: normStage(mine[0].stage) }, false);
+        const first = firstMinNow(mine); // 적용 전 시간 = 처음 입력값
+        if (first != null) { $("#f-minNow").value = first; updateCalc(); }
+      }
       $("#hist").innerHTML = mine.length ? mine.map((r) => `
-        <details><summary><span class="d">${ymdhm(r.createdAt)}</span><span>${r.title ? esc(r.title) : '<span class="none">(삭제)</span>'}${r.stage ? ` <span class="pill">${esc(r.stage)}</span>` : ""}</span>${meter(r.progress)}</summary>
-        <dl>${FIELDS.filter((f) => !["title", "stage", "progress"].includes(f.key) && r[f.key] != null && r[f.key] !== "")
-          .map((f) => `<dt>${f.label}</dt><dd>${esc(r[f.key])}${f.num && f.key !== "progress" ? "분" : ""}</dd>`).join("")}</dl>
+        <details><summary><span class="d">${ymdhm(r.createdAt)}</span><span>${r.title ? esc(r.title) : '<span class="none">(삭제)</span>'}</span>${stageBar(r.stage)}</summary>
+        <dl>${FIELDS.filter((f) => !["title", "stage"].includes(f.key) && r[f.key] != null && r[f.key] !== "")
+          .map((f) => `<dt>${f.label}</dt><dd>${esc(r[f.key])}${f.num ? "분" : ""}</dd>`).join("")}</dl>
 </details>`).join("")
         : '<p class="msg">아직 보고가 없습니다.</p>';
     } catch (e) { $("#hist").innerHTML = `<p class="msg err">이력을 불러오지 못했습니다. (${esc(e.message)})</p>`; }
@@ -241,11 +250,11 @@ async function renderSummary() {
   const last = latestByMember(reports);
   const rows = MEMBERS.map((m) => ({ m, r: last[m.id] }));
   const got = rows.filter((x) => x.r);
-  const avg = got.filter((x) => x.r.progress != null);
+  const built = got.filter((x) => stageIndex(x.r.stage) >= STAGES.indexOf("구현")).length;
   const saved = got.map((x) => monthlySavedHours(x.r)).filter((h) => h != null);
   const blocked = got.filter((x) => isBlocked(x.r));
   const nexts = got.filter((x) => x.r.next);
-  const count = (key, list) => list.map((c) => `<span><span class="t">${c}</span><b>${got.filter((x) => x.r[key] === c).length}</b></span>`).join("");
+  const count = (key, list) => list.map((c) => `<span><span class="t">${c}</span><b>${got.filter((x) => (key === "stage" ? normStage(x.r[key]) : x.r[key]) === c).length}</b></span>`).join("");
 
   $("#pdf").onclick = () => {
     const old = document.title;
@@ -269,32 +278,31 @@ async function renderSummary() {
       <h2><span class="no">2</span>진행 현황 요약</h2>
       <div class="card stats">
         <div><span class="l">보고한 인원</span><span class="v">${got.length}<small>/ ${MEMBERS.length}명</small></span></div>
-        <div><span class="l">평균 진척도</span><span class="v">${avg.length ? Math.round(avg.reduce((a, x) => a + x.r.progress, 0) / avg.length) : "-"}<small>%</small></span></div>
+        <div><span class="l">구현 이상 진행</span><span class="v">${built}<small>/ ${got.length}명</small></span></div>
         <div><span class="l">예상 월 단축 시간 합계</span><span class="v">${saved.length ? hrs(saved.reduce((a, h) => a + h, 0)) : "-"}<small>시간</small></span></div>
         <div><span class="l">막힌 점이 있는 인원</span><span class="v">${blocked.length}<small>명</small></span></div>
       </div>
       <div class="card">
-        <div class="dist"><b>현재 단계</b>${count("stage", STAGES)}</div>
+        <div class="dist"><b>진행 단계</b>${count("stage", STAGES)}</div>
         <div class="dist line"><b>AX 방향</b>${count("direction", DIRS)}</div>
       </div>
     </section>
     <section>
       <h2><span class="no">3</span>팀원별 과제 현황</h2>
       <div class="card scroll"><table class="rep">
-        <tr><th>팀원</th><th>과제 · 대상 업무</th><th>AX 방향 · 도구</th><th>단계</th><th>진척도</th><th class="num">1회 소요 (분)</th><th class="num">월 단축</th><th class="num">보고일</th></tr>
+        <tr><th>팀원</th><th>과제 · 대상 업무</th><th>AX 방향 · 도구</th><th>진행 단계</th><th class="num">1회 소요 (분)<span class="sub">적용 전 → 후</span></th><th class="num">월 단축</th><th class="num">보고일</th></tr>
         ${rows.map(({ m, r }) => !r
-          ? `<tr class="link" data-href="#/m/${m.id}"><td class="k">${m.name}</td><td colspan="7"><span class="none">아직 보고 없음</span></td></tr>`
+          ? `<tr class="link" data-href="#/m/${m.id}"><td class="k">${m.name}</td><td colspan="6"><span class="none">아직 보고 없음</span></td></tr>`
           : `<tr class="link" data-href="#/m/${m.id}">
               <td class="k">${m.name}</td>
               <td>${esc(r.title)}<span class="sub">${esc(r.task)}</span></td>
               <td>${r.direction ? `<span class="pill blue">${esc(r.direction)}</span>` : '<span class="none">-</span>'}<span class="sub">${esc(r.tools)}</span></td>
-              <td>${r.stage ? `<span class="pill">${esc(r.stage)}</span>` : '<span class="none">-</span>'}</td>
-              <td>${meter(r.progress)}</td>
+              <td>${stageBar(r.stage)}</td>
               <td class="num">${r.minNow ?? "-"} → ${r.minAfter ?? "-"}<span class="sub">${esc(r.cycle)}</span></td>
               <td class="num">${monthlySavedHours(r) == null ? '<span class="none">-</span>' : hrs(monthlySavedHours(r)) + "시간"}</td>
               <td class="num">${ymd(r.createdAt)}</td></tr>`).join("")}
       </table></div>
-      <p class="tip">월 단축 시간 = (현재 − 예상 1회 소요 분) × 월 반복 횟수(매일 20, 매주 4, 매월 1) ÷ 60. 각자 보고한 예상치이며 실측이 아닙니다.</p>
+      <p class="tip">월 단축 시간 = (적용 전 − 적용 후 1회 소요 분) × 월 반복 횟수(매일 20, 매주 4, 매월 1) ÷ 60. 각자 보고한 예상치이며 실측이 아닙니다.</p>
     </section>
     <section>
       <h2><span class="no">4</span>막힌 점 (이슈)</h2>
@@ -312,14 +320,31 @@ async function renderSummary() {
     </section>`;
 }
 
+// ── 교육 자료 (보고와 분리된 탭, 원본 HTML을 그대로 보여 줌) ──
+const DOCS = [
+  { id: "basics", name: "AI 기초와 바이브 코딩", note: "1주차 교육" },
+  { id: "cases", name: "AI 업무 활용 사례", note: "사례 시연 · 업무 환경 셋업" }
+];
+function renderEdu(id) {
+  const d = DOCS.find((x) => x.id === id) || DOCS[0];
+  view.innerHTML = `
+    <div class="edu-head">
+      <nav class="tabs doctabs">${DOCS.map((x) => `<a href="#/edu/${x.id}"${x.id === d.id ? ' class="on"' : ""}>${x.name}<span class="n">${x.note}</span></a>`).join("")}</nav>
+      <a class="btn" href="edu/${d.id}.html" target="_blank" rel="noopener">새 창으로 열기</a>
+    </div>
+    <div class="card edu"><iframe src="edu/${d.id}.html" title="${d.name}" loading="lazy"></iframe></div>`;
+}
+
 // ── 화면 전환 ──
 function route() {
   const h = location.hash.replace(/^#\/?/, "");
   const [p, arg] = h.split("/");
-  document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("on", a.dataset.r === (p === "summary" ? "summary" : "home")));
+  const tab = p === "summary" || p === "edu" ? p : "home";
+  document.querySelectorAll("#tabs a").forEach((a) => a.classList.toggle("on", a.dataset.r === tab));
   window.scrollTo(0, 0);
   if (p === "m") renderMember(arg);
   else if (p === "summary") renderSummary();
+  else if (p === "edu") renderEdu(arg);
   else renderHome();
 }
 view.addEventListener("click", (e) => {

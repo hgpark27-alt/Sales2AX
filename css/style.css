@@ -60,10 +60,6 @@ tr.link:hover td { background: var(--hover); }
 .weeks td b { display: block; }
 
 /* 진척도 막대 */
-.meter { display: flex; align-items: center; gap: 8px; min-width: 120px; }
-.meter .bar { flex: 1; height: 6px; border-radius: 999px; background: rgba(20,24,33,.07); overflow: hidden; }
-.meter .bar i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
-.meter span { font-size: 13px; font-variant-numeric: tabular-nums; width: 36px; text-align: right; color: var(--ink-2); }
 
 .pill { display: inline-block; font-size: 12.5px; font-weight: 600; border-radius: 999px; padding: 1px 9px; background: rgba(20,24,33,.06); color: var(--ink-2); white-space: nowrap; }
 .pill.blue { background: var(--accent-soft); color: var(--accent); }
@@ -168,3 +164,24 @@ td.pre { white-space: pre-wrap; }
   .stats > div { padding: 10px 14px; }
   tr.link { cursor: default; }
 }
+/* 진행 단계 막대 (아이디어 → 완료) */
+.stagebar { --c: var(--faint); display: flex; align-items: center; gap: 8px; min-width: 150px; }
+.stagebar .segs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; flex: 1; max-width: 96px; }
+.stagebar .segs i { height: 7px; border-radius: 999px; background: rgba(20,24,33,.08); }
+.stagebar .segs i.on { background: var(--c); }
+.stagebar span { font-size: 12.5px; font-weight: 600; color: var(--c); white-space: nowrap; }
+.stagebar.s0 { --c: #8a8f9a; }
+.stagebar.s1 { --c: #7c5cd6; }
+.stagebar.s2 { --c: #3466f6; }
+.stagebar.s3 { --c: #c27a0e; }
+.stagebar.s4 { --c: #16803c; }
+.stagebar.s5 { --c: #0e5e2c; }
+label .own { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0 7px; }
+/* 교육 자료 탭 */
+.edu-head { min-width: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.edu-head .btn { margin-left: auto; }
+.tabs.doctabs { flex-wrap: nowrap; flex: 0 1 auto; min-width: 0; max-width: 100%; overflow-x: auto; }
+.tabs.doctabs a { display: grid; white-space: nowrap; line-height: 1.35; padding: 7px 16px; }
+.tabs.doctabs a .n { font-size: 11.5px; font-weight: 500; color: var(--faint); }
+.tabs.doctabs a.on .n { color: var(--muted); }
+.card.edu iframe { display: block; width: 100%; height: calc(100vh - 210px); min-height: 560px; border: 0; background: #fff; }
