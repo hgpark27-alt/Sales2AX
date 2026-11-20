@@ -1,7 +1,7 @@
 // 실행: node --test test/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow } from "../js/parse.js";
+import { parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow, emptyFields } from "../js/parse.js";
 
 const SAMPLE = `[AX 챌린지 보고]
 과제명: OPO 자동 갱신
@@ -95,4 +95,47 @@ test("프롬프트: 현재 세션만, 적용 전 시간·진척도는 묻지 않
   assert.equal(r.stage, "");
   assert.equal(r.cycle, "");
   assert.equal(r.minAfter, null);
+});
+
+// 11/20 실제 결과: 현재·목표 방식, 적용 후 시간, 반복 주기가 비어서 옴
+const REAL_1120 = `[AX 챌린지 보고]
+과제명: LED 수주 현황표(OPO) 업데이트 할 일 자동 정리 도구
+대상 업무: LED 수주 현황표(OPO)의 출고·출항·도착·납품 날짜와 수량 관리
+현재 방식:
+목표 방식:
+AX 방향: 사람 판단 보조
+사용 도구: Claude Code, PowerShell, Excel, Outlook
+진행 단계: 실무 적용
+적용 후 소요 시간(1회, 분):
+반복 주기:
+이번에 한 것: 출하 일정표 엑셀을 근거로 빈칸 27개를 채움
+막힌 점: 담당자 판단 필요
+다음 할 것: 빠진 납품 1건 반영
+[끝]`;
+
+test("프롬프트: 칸을 비우지 않게 칸별 작성 기준을 주고, 반복 주기는 묻지 않는다", () => {
+  const p = buildPrompt();
+  assert.match(p, /작성 기준/);
+  assert.match(p, /현재 방식 →/);
+  assert.match(p, /목표 방식 →/);
+  assert.match(p, /적용 후 소요 시간 →/);
+  assert.match(p, /\(추정\)/);
+  assert.doesNotMatch(p, /비워 둬/);
+  assert.doesNotMatch(p, /^반복 주기:/m);
+  // 작성 기준 줄이 칸으로 잘못 읽히면 안 됨
+  const r = parseReport(p);
+  assert.equal(r.asis, "");
+  assert.equal(r.tobe, "");
+  assert.equal(r.minAfter, null);
+});
+
+test("(추정)이 붙은 숫자도 읽는다", () => {
+  assert.equal(parseReport("적용 후 소요 시간(1회, 분): 20 (추정)").minAfter, 20);
+});
+
+test("11/20 실제 결과의 빈 칸 목록을 찾는다", () => {
+  const r = parseReport(REAL_1120);
+  assert.equal(r.stage, "실무 적용");
+  assert.equal(r.direction, "사람 판단 보조");
+  assert.deepEqual(emptyFields(r), ["asis", "tobe", "minAfter", "cycle"]);
 });

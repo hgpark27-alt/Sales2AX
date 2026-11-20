@@ -226,3 +226,7 @@ label .own { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--a
 .ph-desc { font-size: 14px; color: var(--muted); max-width: 70ch; }
 .ph-side { display: flex; align-items: center; gap: 8px; }
 .ph-meta { font-size: 13px; color: var(--muted); }
+/* 붙여넣은 뒤에도 비어 있는 칸 */
+.form label.need input, .form label.need select, .form label.need textarea { border-color: var(--warn); background: var(--warn-soft); }
+.form label.need > span::after { content: "비어 있음"; margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 0 7px; }
+.toast { max-width: calc(100vw - 32px); text-align: center; }

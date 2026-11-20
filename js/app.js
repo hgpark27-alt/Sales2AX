@@ -1,4 +1,4 @@
-import { FIELDS, STAGES, parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow } from "./parse.js";
+import { FIELDS, STAGES, parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow, emptyFields } from "./parse.js";
 import { loadReports, saveReport } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
@@ -35,7 +35,7 @@ const stageBar = (stage) => {
   return `<div class="stagebar s${i}" title="${esc(STAGES[i])} (${i + 1}/${STAGES.length})"><div class="segs">${STAGES.map((_, k) => `<i${k <= i ? ' class="on"' : ""}></i>`).join("")}</div><span>${esc(STAGES[i])}</span></div>`;
 };
 let toastT;
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 1800); }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), Math.max(1800, msg.length * 70)); }
 function copyText(text) {
   if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => toast("복사했습니다"));
   const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
@@ -107,8 +107,8 @@ async function renderHome() {
 // ── 팀원 보고 페이지 ──
 function fieldInput(f) {
   const id = "f-" + f.key;
-  const opt = ["title", "minNow", "minAfter"].includes(f.key) ? ' <span class="opt">(필수)</span>' : "";
-  const own = f.manual ? '<span class="own">직접 입력 · 처음 값 유지</span>' : "";
+  const opt = ["title", "minNow", "minAfter", "cycle"].includes(f.key) ? ' <span class="opt">(필수)</span>' : "";
+  const own = f.manual ? `<span class="own">직접 입력 · ${f.key === "minNow" ? "처음" : "지난"} 값 유지</span>` : "";
   let input;
   if (f.choices) input = `<select id="${id}"><option value="">-</option>${f.choices.map((c) => `<option>${c}</option>`).join("")}</select>`;
   else if (f.num) input = `<input id="${id}" type="number" inputmode="numeric" min="${f.num[0]}" max="${f.num[1]}">`;
@@ -133,7 +133,7 @@ async function renderMember(id) {
     <section>
       <h2><span class="no">2</span>AI가 정리한 결과 붙여넣기</h2>
       <div class="card">
-        <div class="step-h"><span class="lbl">붙여넣으면 아래 칸이 자동으로 채워집니다. AI가 비워 둔 칸은 지난 보고 값이 유지됩니다</span><span class="btns"><button class="btn" id="fill" type="button">다시 채우기</button></span></div>
+        <div class="step-h"><span class="lbl">붙여넣으면 아래 칸이 자동으로 채워집니다. AI가 비워 둔 칸은 지난 보고 값을 쓰고, 그래도 빈 칸은 노란색으로 표시됩니다</span><span class="btns"><button class="btn" id="fill" type="button">다시 채우기</button></span></div>
         <textarea class="paste" id="paste" placeholder="[AX 챌린지 보고]&#10;과제명: …&#10;…&#10;[끝]"></textarea>
       </div>
     </section>
@@ -184,11 +184,17 @@ async function renderMember(id) {
     const r = parseReport($("#paste").value);
     const n = FIELDS.filter((f) => r[f.key] != null && r[f.key] !== "").length;
     if (!n) { toast("형식에 맞는 칸을 찾지 못했습니다"); return; }
-    put(r, true); toast(`${n}개 칸을 채웠습니다`);
+    put(r, true);
+    // 붙여넣은 뒤에도 비어 있는 칸 표시 (지난 보고 값으로 채워진 칸은 제외)
+    const now = get();
+    const empty = [...emptyFields(now), ...(now.minNow == null ? ["minNow"] : [])];
+    document.querySelectorAll("label.need").forEach((l) => l.classList.remove("need"));
+    empty.forEach((k) => $(`label[data-k="${k}"]`).classList.add("need"));
+    toast(empty.length ? `${n}개 칸을 채웠습니다. 빈 칸 ${empty.length}개는 직접 적어 주세요: ${empty.map((k) => FIELDS.find((f) => f.key === k).label).join(", ")}` : `${n}개 칸을 채웠습니다`);
   };
   $("#paste").addEventListener("paste", () => setTimeout(fill, 0));
   $("#fill").onclick = fill;
-  $("#form").addEventListener("input", updateCalc);
+  $("#form").addEventListener("input", (e) => { updateCalc(); const l = e.target.closest("label.need"); if (l && e.target.value.trim()) l.classList.remove("need"); });
 
   $("#form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -196,6 +202,7 @@ async function renderMember(id) {
     if (!d.title) { toast("과제명은 꼭 적어 주세요"); $("#f-title").focus(); return; }
     if (d.minNow == null) { toast("적용 전 소요 시간(분)을 적어 주세요"); $("#f-minNow").focus(); return; }
     if (d.minAfter == null) { toast("적용 후 소요 시간(분)을 적어 주세요"); $("#f-minAfter").focus(); return; }
+    if (!d.cycle) { toast("반복 주기를 골라 주세요"); $("#f-cycle").focus(); return; }
     const btn = $("#save"); btn.disabled = true; btn.textContent = "저장 중…";
     try {
       await saveReport({ member: m.id, ...d, raw: $("#paste").value.slice(0, 6000) });
