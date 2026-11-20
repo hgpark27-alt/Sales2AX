@@ -386,7 +386,7 @@ function sheetHTML({ today, rows, got, built, saved, blocked, nexts }) {
     </div>
     <div class="sh-foot">
       <span>월 단축 시간 = (적용 전 − 적용 후 1회 소요 분) × 월 반복 횟수(매일 20 · 매주 4 · 매월 1) ÷ 60. 연 환산 = 월 × 12. 팀원이 보고한 예상치이며 실측이 아닙니다.</span>
-      <span>hgpark27-alt.github.io/Sales2AX</span>
+      <span>hgpark27-alt.github.io/Sales2AX · 제작 박혜근 (Rodrigo)</span>
     </div>`;
 }
 
