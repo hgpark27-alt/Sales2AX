@@ -114,6 +114,22 @@ pre { margin: 0; padding: 16px 18px; font-family: var(--sans); font-size: 14px; 
 
 .foot { color: var(--faint); font-size: 12px; text-align: center; }
 
+/* 0. AX란? */
+.ax-hero { padding: 22px 22px 20px; display: grid; gap: 14px; }
+.ax-hero .big { font-size: 21px; font-weight: 750; letter-spacing: -.035em; line-height: 1.4; color: var(--ink); }
+.ax-hero .big em { font-style: normal; color: var(--accent); }
+.ax-hero .sub { color: var(--ink-2); }
+.ax-hero .facts { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+.ax-q { display: grid; grid-template-columns: 150px minmax(0,1fr); gap: 4px 16px; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+.ax-q:last-child { border-bottom: 0; }
+.ax-q .who { font-size: 13px; font-weight: 700; color: var(--ink); }
+.ax-q .who small, .ax-q .say small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.ax-q .say { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
+td.ax-d { white-space: nowrap; color: var(--muted); width: 70px; }
+td.ax-num { white-space: nowrap; font-weight: 700; color: var(--ink); }
+#pg-ax tr.us td { background: var(--accent-soft); }
+ol.ax-src { margin: 0; padding: 14px 18px 14px 36px; font-size: 12.5px; color: var(--muted); display: grid; gap: 3px; }
+@media (max-width: 640px) { .ax-q { grid-template-columns: minmax(0,1fr); } .ax-hero .big { font-size: 18px; } }
 @media (max-width: 640px) {
   .wrap { padding: 20px 16px 64px; }
   .tabs { top: 6px; }
@@ -146,14 +162,160 @@ td .sub { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2p
   </header>
 
   <nav class="tabs" id="tabs">
+    <button data-p="ax"><span class="n">0</span>AX란?</button>
     <button data-p="basic"><span class="n">1</span>AI 기본</button>
     <button data-p="vibe"><span class="n">2</span>바이브 코딩</button>
     <button data-p="split"><span class="n">3</span>업무 쪼개기</button>
     <button data-p="ask"><span class="n">4</span>요청과 검증</button>
   </nav>
 
+  <!-- ───────────── 0. AX란? ───────────── -->
+  <div class="page" id="pg-ax">
+    <p class="lead">AX(AI Transformation, AI 전환)는 AI를 업무에 붙여서 일하는 방식 자체를 바꾸는 것입니다. 사람이 하던 반복 작업은 AI가 하고, 사람은 기준을 정하고 결과를 확인합니다.</p>
+
+    <section>
+      <h2>한눈에 보기</h2>
+      <div class="card scroll">
+        <table>
+          <thead><tr><th>구분</th><th>일하는 방식</th><th>예: 선적 메일 보고 엑셀 갱신</th></tr></thead>
+          <tbody>
+            <tr><td class="k">예전</td><td>종이·손으로 처리</td><td>메일을 출력해 보고 장부에 적음</td></tr>
+            <tr><td class="k">DX<small>디지털 전환</small></td><td>데이터를 컴퓨터로 옮김</td><td>메일을 하나씩 열어 엑셀에 직접 입력</td></tr>
+            <tr class="us"><td class="k">AX<small>AI 전환</small></td><td>AI가 읽고 처리, 사람은 확인</td><td>AI가 메일을 읽어 바꿀 칸을 채우고, 사람은 맞는지 확인만</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>지금 상황</h2>
+      <div class="card ax-hero">
+        <p class="big">대기업은 2026년 상반기에 이미 <em>회장이 직접 코딩을 배우는</em> 단계에 들어갔습니다.<br>AX는 "해 볼까"가 아니라 "안 하면 뒤처지는" 과제가 됐습니다.</p>
+        <p class="sub">현대차·롯데 회장은 바이브 코딩을 직접 배웠고, 삼성·SK·LG도 사장단·임원 AI 교육을 직접 챙깁니다. 교육은 사장단 → 임원 → 전 직원으로 내려오는 중입니다. 계열사 단위에서는 현업이 직접 과제를 찾아 성과를 내고 있습니다.</p>
+        <div class="facts">
+          <span>삼성 임원 AI 합숙 교육 <b>2,300여 명</b></span>
+          <span>현대차 사내 AI 사용자 <b>3만 명+</b></span>
+          <span>현대차 목표: 전 임직원 <b>70%</b> 주 1회 이상 AI 사용</span>
+          <span>한솔로지스틱스 현업 과제 <b>30여 건</b> 실무 도입</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>경영진은 이렇게 말합니다</h2>
+      <div class="card">
+        <div class="ax-q"><div class="who">신동빈<small>롯데 회장</small></div><div class="say">"AX는 선택이 아닌 그룹의 생존이 걸린 최우선 과제가 됐다"<small>이데일리, 2026. 6. 16</small></div></div>
+        <div class="ax-q"><div class="who">구광모<small>LG 회장</small></div><div class="say">"AX 전환에서 가장 중요한 것은 속도"<small>파이낸셜뉴스, 2026. 8. 17</small></div></div>
+        <div class="ax-q"><div class="who">최태원<small>SK 회장</small></div><div class="say">"360도 전방위로, 전속력으로 AI 전환에 돌입해야 할 때"<small>연합인포맥스, 2026. 6. 16 · '1인 1에이전트' 구상 제안</small></div></div>
+        <div class="ax-q"><div class="who">이재용<small>삼성전자 회장</small></div><div class="say">"남들이 만들어 놓은 것이라도 쓰라"<small>파이낸셜뉴스, 2026. 8. 17 · 연초 질책</small></div></div>
+        <div class="ax-q"><div class="who">삼성 임원<small>AI 합숙 교육 이수</small></div><div class="say">"앞으로는 AI를 못 쓰면 절대 안 된다는 점을 회사가 확실히 주지시킨 것 같다"<small>파이낸셜뉴스, 2026. 8. 17</small></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>2026년에 있었던 일</h2>
+      <div class="card scroll">
+        <table>
+          <thead><tr><th>시기</th><th>그룹</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td class="ax-d">연초</td><td class="k">현대차</td><td>정의선 회장이 본인과 주요 경영진 대상 바이브 코딩 교육을 직접 요청해 참여</td></tr>
+            <tr><td class="ax-d">3월</td><td class="k">LG</td><td>임원 대상 'AX 캠프' → 6월 전 세계 임원 대상 'AI 포 컴퍼니' 과정으로 이어감</td></tr>
+            <tr><td class="ax-d">4월</td><td class="k">현대차</td><td>부회장 직속 'AI 거버넌스 TF' 신설, 각 그룹사에 같은 조직을 만들 계획</td></tr>
+            <tr><td class="ax-d">4~7월</td><td class="k">현대위아</td><td>사무·연구직 약 2,000명 대상 'AX 리터러시 교육' (프롬프트, 문서 요약, 데이터 분석, 기획안 작성)</td></tr>
+            <tr><td class="ax-d">6월</td><td class="k">삼성</td><td>전 관계사 사장단 50여 명 'AX 부트캠프'. 사장단이 업무 혁신안을 직접 설계해 발표. 외부 생성형 AI(챗GPT·제미나이 등) 전 관계사 도입</td></tr>
+            <tr><td class="ax-d">6월</td><td class="k">SK</td><td>경영진 50여 명 '뉴 이천포럼', 주제 "AX 중심 경영으로의 대전환". SKT는 AI 에이전트에 사번·직무·권한을 주는 'AX 혁신 2.0'</td></tr>
+            <tr><td class="ax-d">6월</td><td class="k">롯데</td><td>계열사 CEO 50여 명 'CEO AI 아카데미'. 신동빈 회장이 바이브 코딩으로 AI 에이전트를 직접 개발. 연내 전 임직원 AI 에이전트 실무 교육</td></tr>
+            <tr><td class="ax-d">8월</td><td class="k">삼성</td><td>주요 관계사 임원 2,300여 명 2박 3일 AI 합숙 교육. "AI 과제 제출 못 하면 숙소 입소 불가"</td></tr>
+            <tr><td class="ax-d">8월</td><td class="k">현대차</td><td>본부마다 현업 직원을 'AX 챔피언'으로 지정 (기존 업무와 겸직), AX 성과 발표회 개최</td></tr>
+            <tr><td class="ax-d">10월</td><td class="k">현대차</td><td>목표 공개: 전 임직원 70% 이상 주 1회 AI 사용, 필요한 문서 5분·업무 지식 1분 안에 검색</td></tr>
+            <tr><td class="ax-d">11월</td><td class="k">한솔로지스틱스</td><td>현업이 직접 찾은 AX 과제 30여 건 실무 도입 발표 (영업·물류·재무·안전)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>어떻게 전개하나 — 공통 순서</h2>
+      <p class="tip">그룹마다 순서와 이름은 다르지만, 기사를 모아 보면 대체로 아래 6단계로 진행됩니다. 처음엔 현업 자율(바텀업)로 시작했다가, 올해 들어 경영진이 목표·평가로 끌고 가는 방식(톱다운)이 더해졌습니다.</p>
+      <div class="card">
+        <div class="flow">
+          <div><span class="step">1 · 톱다운</span><span class="t">경영진이 먼저 배움</span></div>
+          <div><span class="step">2 · 톱다운</span><span class="t">사내 AI 도구 도입</span></div>
+          <div><span class="step">3 · 전 직원</span><span class="t">기본 교육</span></div>
+          <div><span class="step">4 · 바텀업</span><span class="t">현업이 과제 발굴</span></div>
+          <div><span class="step">5 · 톱다운</span><span class="t">목표·평가에 반영</span></div>
+          <div><span class="step">6 · 바텀업</span><span class="t">사례 공유·표준화</span></div>
+        </div>
+      </div>
+      <div class="card scroll">
+        <table>
+          <thead><tr><th></th><th>단계</th><th>실제 사례</th></tr></thead>
+          <tbody>
+            <tr><td class="no">1</td><td class="k">경영진이 먼저 직접 배움<small>위에서부터 해 본다</small></td><td>정의선 회장 바이브 코딩 교육(현대차), 신동빈 회장 AI 에이전트 직접 개발(롯데), 사장단 'AX 부트캠프'(삼성), 격주 토요일 임원 교육 때 AI 교육(SK)</td></tr>
+            <tr><td class="no">2</td><td class="k">사내 AI 도구 도입<small>보안 지키며 쓸 수 있는 환경</small></td><td>H Chat(현대차), 엘지니(LG전자), 가이아(SK하이닉스), 에이닷 비즈(SKT), 외부 생성형 AI 전 관계사 도입(삼성), LG CNS는 클로드 엔터프라이즈 도입 계약</td></tr>
+            <tr><td class="no">3</td><td class="k">전 직원 기본 교육<small>AI 리터러시(기본 활용 능력)</small></td><td>현대위아 사무·연구직 약 2,000명 실무 교육, 롯데 연내 전 임직원 AI 에이전트 실무 교육, 삼성 전 직원 AI 교육 체계 구축 계획</td></tr>
+            <tr><td class="no">4</td><td class="k">현업이 과제 발굴<small>자기 업무의 병목을 직접 해결</small></td><td>현대차 본부별 'AX 챔피언'(현업 직원이 겸직, 별도 조직 아님), 한솔로지스틱스 현업이 30여 건 발굴해 도구를 직접 개발</td></tr>
+            <tr><td class="no">5</td><td class="k">목표·평가에 반영<small>안 하면 티가 나게</small></td><td>삼성·LG 임원 인사에 AX 이행·역량 반영 계획, 현대차 "전 임직원 70% 주 1회 이상" 목표, 현대차 일부 본부는 인턴 정규직 전환 과제를 AX 과제로</td></tr>
+            <tr><td class="no">6</td><td class="k">사례 공유·표준화<small>잘된 것을 전사로</small></td><td>현대차 AX 성과 발표회, 한솔그룹 AI 경진대회, 롯데 'AI 해커톤'·'AI 챌린지', 한솔로지스틱스는 범용성 높은 과제를 표준 업무로 확대</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>숫자로 본 효과</h2>
+      <div class="card scroll">
+        <table>
+          <thead><tr><th>회사</th><th>업무</th><th>효과</th></tr></thead>
+          <tbody>
+            <tr><td class="k">현대차그룹</td><td>고객 리뷰 처리</td><td class="ax-num">건당 35분 → 5분</td></tr>
+            <tr><td class="k">현대차그룹</td><td>충돌 안전 분석 (AI 어시스턴트)</td><td class="ax-num">분석 시간 약 90% 단축</td></tr>
+            <tr><td class="k">현대차그룹</td><td>정비 지원 AI</td><td class="ax-num">대응 시간 약 42% 단축</td></tr>
+            <tr><td class="k">현대차그룹</td><td>차량식별번호 자동 판독 (약 70곳)</td><td class="ax-num">연 52억 4천만 원 절감</td></tr>
+            <tr><td class="k">한솔로지스틱스</td><td>매출·매입 데이터 검증</td><td class="ax-num">검증 시간 50%가량 단축</td></tr>
+            <tr><td class="k">한솔로지스틱스</td><td>일부 반복 수작업</td><td class="ax-num">소요 시간 40% 감소</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tip">해외도 같은 흐름입니다. 맥킨지 2026 조사에서 매출 10억 달러 이상 대기업 중 <b>AI 에이전트를 실제 업무로 확대 중</b>이라는 응답이 1년 새 27% → 40%로 늘었습니다.</p>
+    </section>
+
+    <section>
+      <h2>우리 챌린지는 어디에 해당하나</h2>
+      <div class="card scroll">
+        <table>
+          <thead><tr><th>대기업이 하는 것</th><th>영업2팀 AX 챌린지</th></tr></thead>
+          <tbody>
+            <tr><td>3단계 · 전 직원 기본 교육</td><td>1주차 기본 교육 (이 자료)</td></tr>
+            <tr class="us"><td>4단계 · 현업이 과제 발굴 (현대차 AX 챔피언, 한솔로지스틱스 30여 건)</td><td><b>팀원 각자 자기 반복 업무 하나를 골라 직접 자동화</b></td></tr>
+            <tr><td>6단계 · 사례 공유</td><td>3주차 중간점검, 4주차 MVP 발표</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tip">대기업이 조직을 만들고 평가에 넣어 끌고 가는 일을, 우리는 팀 단위로 4주 안에 직접 해 보는 구조입니다.</p>
+    </section>
+
+    <section>
+      <h2>출처</h2>
+      <div class="card">
+        <ol class="ax-src">
+          <li><a href="https://www.mt.co.kr/industry/2026/08/27/2026082708491398700" target="_blank">머니투데이, 현대차그룹 'AX 챔피언' 뜬다 (2026. 8. 27)</a></li>
+          <li><a href="https://newsway.co.kr/news/view?ud=2026102113441538269" target="_blank">뉴스웨이, 회장부터 AI 직접 배운다…현대차그룹, 임직원 활용률 70% 목표 (2026. 10. 22)</a></li>
+          <li><a href="https://www.fnnews.com/news/202608171831347209" target="_blank">파이낸셜뉴스, 4대그룹 총수들, AI 에이전트 만들고 코딩까지 배운다 (2026. 8. 17)</a></li>
+          <li><a href="https://www.seoul.co.kr/news/economy/industry/2026/06/11/20260611029004" target="_blank">서울신문, '한국형 AX'에 사활 건 4대 그룹 (2026. 6. 11)</a></li>
+          <li><a href="https://www.seoul.co.kr/news/economy/2026/11/09/20261109500194" target="_blank">서울신문, 한솔로지스틱스 전사 AX 본격화 (2026. 11. 10)</a></li>
+          <li><a href="https://edaily.co.kr/News/Read?mediaCodeNo=257&amp;newsId=03217686645482376" target="_blank">이데일리, 직접 바이브 코딩 나선 롯데 신동빈 (2026. 6. 16)</a></li>
+          <li><a href="https://kbthink.com/news-list/view.html?newsId=20260616131014388" target="_blank">연합인포맥스, SKT AI 에이전트에 '사번' 준다 (2026. 6. 16)</a></li>
+          <li><a href="https://kbthink.com/news-list/view.html?newsId=20260611085441690" target="_blank">연합인포맥스, 재계 AX 판도 삼성·SK·LG 3파전 (2026. 6. 11)</a></li>
+          <li><a href="https://www.etoday.co.kr/news/view/2592296" target="_blank">이투데이, 재계 AX '실전 모드' 돌입 (2026. 6. 10)</a></li>
+          <li><a href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai" target="_blank">McKinsey, The state of AI in 2026</a></li>
+        </ol>
+      </div>
+    </section>
+  </div>
+
   <!-- ───────────── 1. AI 기본 ───────────── -->
-  <div class="page" id="pg-basic">
+  <div class="page" id="pg-basic" hidden>
     <p class="lead">AI는 질문에 답하는 채팅에 그치지 않습니다. 파일을 직접 열고 만들고, 프로그램을 실행하고, 결과가 왜 맞는지 근거와 검증 과정까지 설명하는 업무 도구로 쓸 수 있습니다.</p>
 
     <section>
@@ -486,7 +648,7 @@ td .sub { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2p
 <script>
   var tabs = document.querySelectorAll("#tabs button");
   function show(id) {
-    if (!document.getElementById("pg-" + id)) id = "basic";
+    if (!document.getElementById("pg-" + id)) id = "ax";
     document.querySelectorAll(".page").forEach(function (p) { p.hidden = p.id !== "pg-" + id; });
     tabs.forEach(function (b) { b.classList.toggle("on", b.dataset.p === id); });
     if (location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
