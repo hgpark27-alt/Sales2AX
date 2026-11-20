@@ -3,7 +3,7 @@ import { loadReports, saveReport } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
 const MEMBERS = [
-  { id: "dave", name: "Dave" }, { id: "ethan", name: "Ethan" },
+  { id: "dave", name: "Dave" }, { id: "eric", name: "Eric" }, { id: "ethan", name: "Ethan" },
   { id: "rodrigo", name: "Rodrigo" }, { id: "sumin", name: "Sumin" }
 ];
 const WEEKS = [
@@ -48,12 +48,22 @@ function latestByMember(reports) {
   for (const k in m) if (!m[k].title) delete m[k]; // 최신이 빈 보고(삭제) → 보고 없음
   return m;
 }
+// 페이지 머리말: 위치(어느 메뉴의 어느 화면) + 제목 + 한 줄 설명 + 오른쪽 버튼·정보
+const pageHead = ({ path, title, desc = "", side = "" }) => `
+  <div class="pagehead">
+    <div class="ph-text">
+      <div class="ph-path">${path}</div>
+      <h2 class="ph-title">${title}</h2>
+      ${desc ? `<p class="ph-desc">${desc}</p>` : ""}
+    </div>
+    ${side ? `<div class="ph-side">${side}</div>` : ""}
+  </div>`;
 const errBox = (e) => `<div class="card"><p class="msg err">데이터를 불러오지 못했습니다. 인터넷 연결 또는 회사 네트워크 차단 여부를 확인해 주세요. (${esc(e && e.message || e)})</p></div>`;
 
 // ── 홈 ──
 async function renderHome() {
   view.innerHTML = `
-    <p class="lead">4주 동안 각자 자기 업무 하나를 AI로 자동화합니다. 진행 상황은 팀원 페이지에서 보고하고, 요약 페이지에서 함께 봅니다.</p>
+    ${pageHead({ path: "챌린지", title: "챌린지 소개와 팀원 현황", desc: "4주 동안 각자 자기 업무 하나를 AI로 자동화합니다. 진행 상황은 팀원 페이지에서 보고하고, 요약 페이지에서 함께 봅니다." })}
     <section>
       <h2>이 챌린지는</h2>
       <div class="card scroll"><table class="about">${ABOUT.map((a) => `<tr><td class="k">${a[0]}</td><td>${a[1]}</td></tr>`).join("")}
@@ -112,10 +122,7 @@ async function renderMember(id) {
   if (!m) { location.hash = "#/"; return; }
   const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
   view.innerHTML = `
-    <a class="back" href="#/">← 팀원 목록</a>
-    <section>
-      <h2>${m.name}의 AX 과제 <span class="side" id="last-at"></span></h2>
-    </section>
+    ${pageHead({ path: `<a href="#/">챌린지</a><span>›</span>팀원 보고`, title: `${m.name}의 진행 보고`, desc: "AI가 정리한 진행 상황을 붙여넣고 확인한 뒤 저장합니다. 저장할 때마다 이력이 쌓입니다.", side: '<span class="ph-meta" id="last-at"></span>' })}
     <section>
       <h2><span class="no">1</span>프롬프트를 AI 에이전트에 넣기</h2>
       <div class="card">
@@ -239,11 +246,9 @@ const isBlocked = (r) => r.blocked && !/^(없음|없다|없습니다|-|n\/a|none
 
 async function renderSummary() {
   view.innerHTML = `
-    <div class="toolbar no-print">
-      <p class="tip">본부장 보고용 보고서 형식입니다. 팀원별 최신 보고 기준이며, 행을 누르면 해당 팀원의 보고 이력으로 이동합니다.</p>
-      <button class="btn dark" id="pdf" type="button">PDF 저장</button>
-    </div>
-    <div id="sum" class="stack"><div class="card"><p class="msg">불러오는 중…</p></div></div>`;
+    ${pageHead({ path: "요약", title: "영업2팀 AX 챌린지 진행 보고", desc: `본부장 보고용 보고서입니다. 팀원별 최신 보고 기준 · 기준일 ${ymdFull(new Date())}. 행을 누르면 해당 팀원의 보고 이력으로 이동합니다.`, side: '<button class="btn dark" id="pdf" type="button">PDF 저장 (1장)</button>' })}
+    <div id="sum" class="stack"><div class="card"><p class="msg">불러오는 중…</p></div></div>
+    <div id="sheet" class="sheet" aria-hidden="true"></div>`;
   let reports;
   try { reports = await loadReports(); } catch (e) { $("#sum").innerHTML = errBox(e); return; }
   const today = new Date();
@@ -264,10 +269,6 @@ async function renderSummary() {
   };
 
   $("#sum").innerHTML = `
-    <div class="report-head">
-      <h2 class="r-title">영업2팀 AX 챌린지 진행 보고</h2>
-      <span class="r-meta">기준일 ${ymdFull(today)} · 영업2팀 · 보고 ${got.length}/${MEMBERS.length}명</span>
-    </div>
     <section>
       <h2><span class="no">1</span>개요</h2>
       <div class="card"><table class="about">${ABOUT.filter((a) => a[0] !== "이 페이지").map((a) => `<tr><td class="k">${a[0]}</td><td>${a[1]}</td></tr>`).join("")}
@@ -318,6 +319,65 @@ async function renderSummary() {
         ${nexts.map(({ m, r }) => `<tr><td class="k">${m.name}</td><td>${esc(r.title)}</td><td class="pre">${esc(r.next)}</td></tr>`).join("")}
       </table>` : '<p class="msg">보고된 다음 계획이 없습니다.</p>'}</div>
     </section>`;
+
+  $("#sheet").innerHTML = sheetHTML({ today, rows, got, built, saved, blocked, nexts });
+}
+
+// ── PDF용 1장 보고서 (A4 가로, 인쇄할 때만 보임) ──
+function sheetHTML({ today, rows, got, built, saved, blocked, nexts }) {
+  const total = saved.reduce((a, h) => a + h, 0);
+  const max = Math.max(0, ...got.map((x) => monthlySavedHours(x.r) || 0));
+  const kpi = (l, v, u, s = "") => `<div class="kpi"><span class="l">${l}</span><span class="v">${v}<small>${u}</small></span>${s ? `<span class="s">${s}</span>` : ""}</div>`;
+  const stageCount = STAGES.map((s, i) => `<div><i class="dot s${i}"></i><span>${s}</span><b>${got.filter((x) => stageIndex(x.r.stage) === i).length}</b></div>`).join("");
+  const list = (arr, key, empty) => arr.length
+    ? `<ul>${arr.map(({ m, r }) => `<li><b>${m.name}</b><span class="clamp">${esc(r[key])}</span></li>`).join("")}</ul>`
+    : `<p class="empty">${empty}</p>`;
+  return `
+    <div class="sh-top">
+      <div><span class="sh-kicker">영업2팀 · AX 챌린지</span><h1>AX 챌린지 진행 보고</h1></div>
+      <div class="sh-meta"><b>기준일 ${ymdFull(today)}</b><span>대상 영업2팀 ${MEMBERS.length}명 · 보고 ${got.length}명 · 팀원 자가 보고 기준</span></div>
+    </div>
+    <div class="sh-row1">
+      <div class="sh-box">
+        <h3>개요</h3>
+        <dl>${ABOUT.filter((a) => ["목적", "방식", "결과물"].includes(a[0])).map((a) => `<dt>${a[0]}</dt><dd>${a[1]}</dd>`).join("")}</dl>
+        <ol class="sh-weeks">${WEEKS.map((w) => `<li><span>${w.w}</span>${esc(w.t)}</li>`).join("")}</ol>
+      </div>
+      <div class="sh-box">
+        <h3>핵심 수치</h3>
+        <div class="kpis">
+          ${kpi("보고 인원", got.length, ` / ${MEMBERS.length}명`)}
+          ${kpi("구현 이상 진행", built, ` / ${got.length}명`)}
+          ${kpi("예상 월 단축 시간", saved.length ? hrs(total) : "-", "시간", saved.length ? `연 환산 약 ${hrs(total * 12)}시간` : "")}
+          ${kpi("막힌 점 있음", blocked.length, "명")}
+        </div>
+        <div class="sh-stages">${stageCount}</div>
+      </div>
+    </div>
+    <div class="sh-box sh-table">
+      <h3>팀원별 과제 현황</h3>
+      <table>
+        <colgroup><col style="width:11%"><col style="width:31%"><col style="width:17%"><col style="width:18%"><col style="width:10%"><col style="width:13%"></colgroup>
+        <tr><th>팀원</th><th>과제 · 대상 업무</th><th>AX 방향 · 도구</th><th>진행 단계</th><th class="num">1회 소요(분)<br>적용 전 → 후</th><th>월 단축</th></tr>
+        ${rows.map(({ m, r }) => !r
+          ? `<tr><td class="k">${m.name}</td><td colspan="5" class="none">아직 보고 없음</td></tr>`
+          : `<tr><td class="k">${m.name}</td>
+              <td><span class="t clamp1">${esc(r.title)}</span><span class="sub clamp1">${esc(r.task)}</span></td>
+              <td><span class="clamp1">${esc(r.direction) || "-"}</span><span class="sub clamp1">${esc(r.tools)}</span></td>
+              <td>${stageBar(r.stage)}</td>
+              <td class="num">${r.minNow ?? "-"} → ${r.minAfter ?? "-"}<span class="sub">${esc(r.cycle)}</span></td>
+              <td>${monthlySavedHours(r) == null ? '<span class="none">-</span>'
+                : `<div class="hbar"><i style="width:${max ? Math.round(monthlySavedHours(r) / max * 100) : 0}%"></i></div><span class="hv">${hrs(monthlySavedHours(r))}시간</span>`}</td></tr>`).join("")}
+      </table>
+    </div>
+    <div class="sh-row3">
+      <div class="sh-box"><h3>막힌 점 (이슈)</h3>${list(blocked, "blocked", "보고된 막힌 점이 없습니다.")}</div>
+      <div class="sh-box"><h3>다음 계획</h3>${list(nexts, "next", "보고된 다음 계획이 없습니다.")}</div>
+    </div>
+    <div class="sh-foot">
+      <span>월 단축 시간 = (적용 전 − 적용 후 1회 소요 분) × 월 반복 횟수(매일 20 · 매주 4 · 매월 1) ÷ 60. 연 환산 = 월 × 12. 팀원이 보고한 예상치이며 실측이 아닙니다.</span>
+      <span>hgpark27-alt.github.io/Sales2AX</span>
+    </div>`;
 }
 
 // ── 교육 자료 (보고와 분리된 탭, 원본 HTML을 그대로 보여 줌) ──
@@ -328,6 +388,7 @@ const DOCS = [
 function renderEdu(id) {
   const d = DOCS.find((x) => x.id === id) || DOCS[0];
   view.innerHTML = `
+    ${pageHead({ path: `교육 자료<span>›</span>${d.note}`, title: d.name, desc: "교육 때 쓰는 원본 자료입니다. 보고와는 별개이며, 아래 탭으로 자료를 바꿔 볼 수 있습니다." })}
     <div class="edu-head">
       <nav class="tabs doctabs">${DOCS.map((x) => `<a href="#/edu/${x.id}"${x.id === d.id ? ' class="on"' : ""}>${x.name}<span class="n">${x.note}</span></a>`).join("")}</nav>
       <a class="btn" href="edu/${d.id}.html" target="_blank" rel="noopener">새 창으로 열기</a>

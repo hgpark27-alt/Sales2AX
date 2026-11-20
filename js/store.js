@@ -6,7 +6,7 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const db = getFirestore(initializeApp(firebaseConfig));
 
-// 전체 보고 (최신순). 팀 4명 × 4주 규모라 한 번에 읽어도 충분
+// 전체 보고 (최신순). 팀 5명 × 4주 규모라 한 번에 읽어도 충분
 export async function loadReports() {
   const snap = await getDocs(query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(1000)));
   return snap.docs.map((d) => {
