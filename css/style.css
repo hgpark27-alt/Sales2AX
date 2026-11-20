@@ -78,14 +78,8 @@ tr.link:hover td { background: var(--hover); }
 .dist.line { border-top: 1px solid var(--line); }
 
 /* 보고 입력 */
-.step-h { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--head); }
-.step-h .lbl { font-size: 13.5px; font-weight: 600; }
-.step-h .btns { margin-left: auto; display: flex; gap: 6px; }
-pre.prompt { margin: 0; padding: 14px 16px; font-family: var(--sans); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; color: var(--ink-2); max-height: 260px; overflow: auto; }
 textarea, input, select { font: inherit; font-size: 14px; color: var(--ink); background: #fff; border: 1px solid var(--line-2); border-radius: 9px; padding: 8px 10px; width: 100%; }
 textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
-textarea.paste { border: 0; border-radius: 0; min-height: 150px; resize: vertical; font-family: var(--sans); font-size: 13px; padding: 14px 16px; }
-textarea.paste:focus { outline: none; }
 
 .btn { font: inherit; font-size: 13.5px; font-weight: 600; border-radius: 999px; padding: 6px 16px; cursor: pointer; border: 1px solid var(--line-2); background: #fff; color: var(--ink); white-space: nowrap; }
 .btn:hover { background: var(--hover); }
@@ -230,3 +224,19 @@ label .own { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--a
 .form label.need input, .form label.need select, .form label.need textarea { border-color: var(--warn); background: var(--warn-soft); }
 .form label.need > span::after { content: "비어 있음"; margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 0 7px; }
 .toast { max-width: calc(100vw - 32px); text-align: center; }
+/* 1단계 복사 상자: 읽기 전용 회색 패널, 본문은 접어 둠 */
+.copybox { background: #e9ebef; border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; }
+.cb-main { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.cb-text { flex: 1 1 320px; font-size: 14px; color: var(--ink-2); }
+.btn.big { font-size: 14.5px; padding: 9px 22px; }
+.cb-more summary { cursor: pointer; font-size: 13px; color: var(--muted); width: max-content; }
+.cb-more summary:hover { color: var(--ink); }
+pre.prompt { margin: 8px 0 0; padding: 12px 14px; background: rgba(255,255,255,.55); border-radius: 10px; font-family: var(--sans); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; color: var(--ink-2); max-height: 260px; overflow: auto; }
+/* 2단계 붙여넣기 상자: 입력 칸임이 보이게 흰 바탕 + 파란 점선 */
+.pastebox { background: #fff; border: 2px dashed rgba(52,102,246,.45); border-radius: var(--radius); overflow: hidden; transition: border-color .15s; }
+.pastebox:focus-within { border-color: var(--accent); border-style: solid; }
+textarea.paste { display: block; border: 0; border-radius: 0; min-height: 150px; resize: vertical; font-family: var(--sans); font-size: 13.5px; padding: 16px 18px; background: transparent; }
+textarea.paste:focus { outline: none; }
+textarea.paste::placeholder { color: var(--accent); opacity: .75; font-size: 14.5px; font-weight: 600; }
+.pb-foot { display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 18px; border-top: 1px dashed rgba(52,102,246,.3); font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.pb-foot .btn { margin-left: auto; }

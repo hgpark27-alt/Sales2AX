@@ -124,17 +124,20 @@ async function renderMember(id) {
   view.innerHTML = `
     ${pageHead({ path: `<a href="#/">챌린지</a><span>›</span>팀원 보고`, title: `${m.name}의 진행 보고`, desc: "AI가 정리한 진행 상황을 붙여넣고 확인한 뒤 저장합니다. 저장할 때마다 이력이 쌓입니다.", side: '<span class="ph-meta" id="last-at"></span>' })}
     <section>
-      <h2><span class="no">1</span>프롬프트를 AI 에이전트에 넣기</h2>
-      <div class="card">
-        <div class="step-h"><span class="lbl">과제를 진행한 그 대화(세션)에 그대로 붙여넣으세요</span><span class="btns"><button class="btn dark" id="copy-prompt" type="button">복사</button></span></div>
-        <pre class="prompt" id="prompt"></pre>
+      <h2><span class="no">1</span>프롬프트 복사 → AI 대화에 붙여넣기</h2>
+      <div class="copybox">
+        <div class="cb-main">
+          <p class="cb-text"><b>복사만 하면 됩니다.</b> 과제를 진행한 그 대화(Claude Code 세션 등)에 붙여넣으면 AI가 보고 형식으로 정리해 줍니다.</p>
+          <button class="btn dark big" id="copy-prompt" type="button">프롬프트 복사</button>
+        </div>
+        <details class="cb-more"><summary>프롬프트 내용 보기</summary><pre class="prompt" id="prompt"></pre></details>
       </div>
     </section>
     <section>
-      <h2><span class="no">2</span>AI가 정리한 결과 붙여넣기</h2>
-      <div class="card">
-        <div class="step-h"><span class="lbl">붙여넣으면 아래 칸이 자동으로 채워집니다. AI가 비워 둔 칸은 지난 보고 값을 쓰고, 그래도 빈 칸은 노란색으로 표시됩니다</span><span class="btns"><button class="btn" id="fill" type="button">다시 채우기</button></span></div>
-        <textarea class="paste" id="paste" placeholder="[AX 챌린지 보고]&#10;과제명: …&#10;…&#10;[끝]"></textarea>
+      <h2><span class="no">2</span>AI가 정리한 결과를 여기에 붙여넣기</h2>
+      <div class="pastebox">
+        <textarea class="paste" id="paste" placeholder="AI가 정리한 결과를 여기에 붙여넣으세요 (Ctrl+V)&#10;붙여넣으면 아래 3번 칸이 자동으로 채워집니다."></textarea>
+        <div class="pb-foot"><span>AI가 비워 둔 칸은 지난 보고 값을 쓰고, 그래도 빈 칸은 노란색으로 표시됩니다.</span><button class="btn" id="fill" type="button">다시 채우기</button></div>
       </div>
     </section>
     <section>
