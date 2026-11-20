@@ -1,5 +1,5 @@
 import { FIELDS, STAGES, parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow, emptyFields } from "./parse.js";
-import { loadReports, saveReport } from "./store.js";
+import { loadReports, saveReport, countVisit, todayVisits, resetVisits } from "./store.js";
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
 const MEMBERS = [
@@ -424,3 +424,23 @@ view.addEventListener("click", (e) => {
 });
 window.addEventListener("hashchange", route);
 route();
+
+// ── 관리(톱니바퀴): 비밀번호 0282 → 오늘 방문자 수, 초기화 (보안용 아님, 단순 가림) ──
+countVisit().catch(() => {});
+$("#gear").addEventListener("click", () => {
+  const box = $("#admin");
+  box.hidden = !box.hidden;
+  if (!box.hidden && $("#admin-body").hidden) $("#admin-pw input").focus();
+});
+const showVisits = () => todayVisits().then((n) => ($("#admin-count").textContent = n)).catch(() => ($("#admin-count").textContent = "?"));
+$("#admin-pw").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const inp = $("#admin-pw input");
+  if (inp.value !== "0282") { inp.value = ""; toast("비밀번호가 다릅니다"); return; }
+  $("#admin-pw").hidden = true; $("#admin-body").hidden = false;
+  showVisits();
+});
+$("#admin-reset").addEventListener("click", () => {
+  if (!confirm("오늘 방문자 수를 0으로 초기화할까요?")) return;
+  resetVisits().then(() => { showVisits(); toast("초기화했습니다"); }).catch(() => toast("초기화하지 못했습니다"));
+});

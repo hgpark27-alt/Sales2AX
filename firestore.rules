@@ -20,6 +20,14 @@ service cloud.firestore {
         && d.cycle in ['', '매일', '매주', '매월']
         && str(d.done, 2000) && str(d.blocked, 2000) && str(d.next, 2000) && str(d.raw, 6000);
     }
+    // 오늘 방문자 수 (문서 이름 = 날짜). 1씩 늘리거나 0으로 초기화만 가능
+    match /visits/{day} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['count']) && request.resource.data.count in [0, 1];
+      allow update: if request.resource.data.keys().hasOnly(['count'])
+        && (request.resource.data.count == resource.data.count + 1 || request.resource.data.count == 0);
+      allow delete: if false;
+    }
     match /reports/{id} {
       allow read: if true;
       allow create: if valid(request.resource.data);
