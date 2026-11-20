@@ -1,6 +1,7 @@
 // 실행: node --test test/
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { parseReport, monthlySavedHours, buildPrompt, normStage, stageIndex, firstMinNow, emptyFields } from "../js/parse.js";
 
 const SAMPLE = `[AX 챌린지 보고]
@@ -38,9 +39,9 @@ test("마크다운 꾸밈·전각 콜론·코드 블록이 섞여도 읽는다",
   assert.equal(r.stage, "구현");
 });
 
-test("여러 줄 값은 다음 칸이 나올 때까지 이어 붙인다", () => {
+test("여러 줄 값(터미널 줄바꿈)은 다음 칸이 나올 때까지 띄어쓰기로 이어 붙인다", () => {
   const r = parseReport("이번에 한 것: 첫째\n둘째 줄\n막힌 점: 없음");
-  assert.equal(r.done, "첫째\n둘째 줄");
+  assert.equal(r.done, "첫째 둘째 줄");
   assert.equal(r.blocked, "없음");
 });
 
@@ -113,7 +114,7 @@ AX 방향: 사람 판단 보조
 다음 할 것: 빠진 납품 1건 반영
 [끝]`;
 
-test("프롬프트: 칸을 비우지 않게 칸별 작성 기준을 주고, 반복 주기는 묻지 않는다", () => {
+test("프롬프트: 칸을 비우지 않게 칸별 작성 기준을 주고, 반복 주기도 AI가 채운다", () => {
   const p = buildPrompt();
   assert.match(p, /작성 기준/);
   assert.match(p, /현재 방식 →/);
@@ -121,7 +122,8 @@ test("프롬프트: 칸을 비우지 않게 칸별 작성 기준을 주고, 반�
   assert.match(p, /적용 후 소요 시간 →/);
   assert.match(p, /\(추정\)/);
   assert.doesNotMatch(p, /비워 둬/);
-  assert.doesNotMatch(p, /^반복 주기:/m);
+  assert.match(p, /^반복 주기:/m);
+  assert.match(p, /반복 주기 →/);
   // 작성 기준 줄이 칸으로 잘못 읽히면 안 됨
   const r = parseReport(p);
   assert.equal(r.asis, "");
@@ -138,4 +140,26 @@ test("11/20 실제 결과의 빈 칸 목록을 찾는다", () => {
   assert.equal(r.stage, "실무 적용");
   assert.equal(r.direction, "사람 판단 보조");
   assert.deepEqual(emptyFields(r), ["asis", "tobe", "minAfter", "cycle"]);
+});
+
+test("터미널에서 복사해 칸 이름이 줄 중간에 붙어도 칸을 나눠 읽는다 (11/20 실제 결과)", () => {
+  const txt = readFileSync(new URL("./fixtures/real_1120b.txt", import.meta.url), "utf8");
+  const r = parseReport(txt);
+  assert.match(r.asis, /^출하 일정표 엑셀/);
+  assert.match(r.asis, /틀린 곳을 찾음 \(추정\)$/);
+  assert.match(r.tobe, /^스크립트가 공유 폴더의 최신 OPO/);
+  assert.match(r.tobe, /빈칸을 새 버전 파일에/);
+  assert.match(r.tobe, /판단함$/);
+  assert.equal(r.direction, "사람 판단 보조");
+  assert.equal(r.tools, "Claude Code, PowerShell, Excel, Outlook");
+  assert.equal(r.stage, "실무 적용");
+  assert.equal(r.minAfter, 10);
+  assert.match(r.done, /^출하 일정표 엑셀\(메일 첨부\)/);
+  assert.match(r.blocked, /다시 올려야 함$/);
+  assert.match(r.next, /검토 \(추정\)$/);
+  assert.doesNotMatch(r.done, /\s{2,}/);
+});
+
+test("반복 주기에 (추정)이 붙어도 고른다", () => {
+  assert.equal(parseReport("반복 주기: 매주 (추정)").cycle, "매주");
 });

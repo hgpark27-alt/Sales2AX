@@ -108,7 +108,7 @@ async function renderHome() {
 function fieldInput(f) {
   const id = "f-" + f.key;
   const opt = ["title", "minNow", "minAfter", "cycle"].includes(f.key) ? ' <span class="opt">(필수)</span>' : "";
-  const own = f.manual ? `<span class="own">직접 입력 · ${f.key === "minNow" ? "처음" : "지난"} 값 유지</span>` : "";
+  const own = f.manual ? '<span class="own">직접 입력 · 처음 값 유지</span>' : "";
   let input;
   if (f.choices) input = `<select id="${id}"><option value="">-</option>${f.choices.map((c) => `<option>${c}</option>`).join("")}</select>`;
   else if (f.num) input = `<input id="${id}" type="number" inputmode="numeric" min="${f.num[0]}" max="${f.num[1]}">`;

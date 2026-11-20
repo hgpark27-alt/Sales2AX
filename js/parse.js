@@ -12,8 +12,7 @@ export const FIELDS = [
   // 적용 전 시간은 본인이 직접 입력 (프롬프트에서 뺌, 처음 입력값을 계속 씀)
   { key: "minNow",    label: "적용 전 소요 시간", num: [0, 100000], hint: "(1회, 분)", manual: true },
   { key: "minAfter",  label: "적용 후 소요 시간", num: [0, 100000], hint: "(1회, 분)" },
-  // 반복 주기는 세션 안에 근거가 없어 본인이 직접 입력 (지난 값 유지)
-  { key: "cycle",     label: "반복 주기", choices: ["매일", "매주", "매월"], manual: true },
+  { key: "cycle",     label: "반복 주기", choices: ["매일", "매주", "매월"] },
   { key: "done",      label: "이번에 한 것" },
   { key: "blocked",   label: "막힌 점" },
   { key: "next",      label: "다음 할 것" }
@@ -35,21 +34,6 @@ export function firstMinNow(reports) {
   return null;
 }
 
-function cleanLine(line) {
-  return line
-    .replace(/^\s*(?:[-*•>]|\d+[.)])\s+/, "")   // 목록 기호
-    .replace(/\*\*|__|`/g, "")                    // 굵게·코드 표시
-    .trim();
-}
-
-// "과제명: 값", "진척도(%): 70" 처럼 칸 이름으로 시작하는 줄을 찾음
-function matchField(line) {
-  const m = line.match(/^([^:：]{1,30})[:：]\s*(.*)$/);
-  if (!m) return null;
-  const name = squash(m[1].replace(/\(.*?\)|（.*?）/g, ""));
-  const f = FIELDS.find((x) => squash(x.label) === name) || (name === "현재단계" ? FIELDS.find((x) => x.key === "stage") : null);
-  return f ? { f, value: m[2].trim() } : null;
-}
 
 function toNumber(v, [lo, hi]) {
   const m = String(v).replace(/,/g, "").match(/-?\d+(\.\d+)?/);
@@ -65,16 +49,34 @@ function toChoice(v, choices) {
   return choices.find((c) => s.includes(squash(c))) || choices.find((c) => squash(c).includes(s)) || "";
 }
 
+// ── 해석 방식: 줄 단위가 아니라 글 전체에서 "칸 이름 + (괄호 설명) + 콜론"의 위치를 모두 찾고,
+//    다음 칸 이름 전까지를 그 칸의 값으로 읽음. 줄바꿈이 사라지거나(터미널 복사) 끊겨도,
+//    목록 기호·굵게·코드 블록이 섞여도 같은 결과.
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// [칸 이름, 칸 key]. 예전 이름(현재 단계)과 지금은 없는 칸(진척도)도 경계로는 인식 (값은 버림)
+const LABEL_KEYS = [...FIELDS.map((f) => [f.label, f.key]), ["현재 단계", "stage"], ["진척도", null]];
+const LABEL_RE = new RegExp(
+  "(" + LABEL_KEYS.map(([l]) => reEsc(l).replace(/ /g, "\\s*")).sort((a, b) => b.length - a.length).join("|") + ")" +
+  "\\s*(?:[(（][^)）\\n]*[)）])?\\s*[:：]", "g");
+const keyOf = (label) => (LABEL_KEYS.find(([l]) => squash(l) === squash(label)) || [])[1];
+
 export function parseReport(text) {
+  let t = String(text || "")
+    .replace(/```[^\n]*/g, "\n")                              // 코드 블록 표시
+    .replace(/\*\*|__|`/g, "")                                // 굵게·코드 표시
+    .replace(/^[ \t]*(?:[-*•>]|\d+[.)])[ \t]+/gm, "");        // 줄 앞 목록 기호
+  const end = t.search(/\[\s*끝\s*\]/);                       // [끝] 뒤의 덧붙인 말은 버림
+  if (end >= 0) t = t.slice(0, end);
+  t = t.replace(/\[[^\]\n]*보고[^\]\n]*\]/g, "\n");          // [AX 챌린지 보고]
+
+  const hits = [...t.matchAll(LABEL_RE)];
   const raw = {};
-  let cur = null;
-  for (const line0 of String(text || "").split(/\r?\n/)) {
-    const line = cleanLine(line0);
-    if (/^```/.test(line0.trim()) || /^\[.*(보고|끝).*\]$/.test(line)) { cur = null; continue; }
-    const hit = matchField(line);
-    if (hit) { cur = hit.f.key; raw[cur] = hit.value; continue; }
-    if (cur && line) raw[cur] = raw[cur] ? raw[cur] + "\n" + line : line;
-  }
+  hits.forEach((h, i) => {
+    const key = keyOf(h[1]);
+    if (!key) return;
+    const v = t.slice(h.index + h[0].length, i + 1 < hits.length ? hits[i + 1].index : t.length).replace(/\s+/g, " ").trim();
+    if (v || !raw[key]) raw[key] = v;                         // 같은 칸이 두 번 나오면 내용 있는 쪽
+  });
   const out = {};
   for (const f of FIELDS) {
     const v = (raw[f.key] || "").trim();
@@ -109,6 +111,7 @@ export function buildPrompt() {
     "· 목표 방식 → 이 세션에서 만들거나 쓴 도구가 하는 일, 그리고 사람이 남아서 확인·판단할 일",
     "· 적용 후 소요 시간 → 이 세션에서 도구를 돌리고 결과를 확인하는 데 걸린 시간을 기준으로 1회 처리 시간(분) 숫자. 실측이 아니면 숫자 뒤에 (추정)",
     "· 진행 단계 → 아이디어(주제만 정함) / 설계(입력·규칙·출력 정리) / 구현(첫 버전 동작) / 수정(시험하며 고치는 중) / 실무 적용(실제 업무에 사용) / 완료",
+    "· 반복 주기 → 이 업무를 하는 주기. 세션에서 다룬 자료(파일 날짜·버전, 업무 설명)로 판단하고, 근거가 약하면 (추정)",
     "· 이번에 한 것 → 이 세션에서 한 일만",
     "",
     "[AX 챌린지 보고]",
