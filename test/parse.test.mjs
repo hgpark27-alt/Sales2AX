@@ -163,3 +163,16 @@ test("터미널에서 복사해 칸 이름이 줄 중간에 붙어도 칸을 나
 test("반복 주기에 (추정)이 붙어도 고른다", () => {
   assert.equal(parseReport("반복 주기: 매주 (추정)").cycle, "매주");
 });
+
+test("프롬프트: 막힌 점은 만드는 과정의 문제만(없으면 없음), 다음 할 것은 짧은 명사형", () => {
+  const p = buildPrompt();
+  const blocked = p.split("\n").find((l) => l.includes("막힌 점 →")) || "";
+  assert.match(blocked, /만드는 과정/);
+  assert.match(blocked, /없음/);
+  const next = p.split("\n").find((l) => l.includes("다음 할 것 →")) || "";
+  assert.match(next, /명사/);
+  // 작성 기준 줄은 여전히 칸으로 읽히면 안 됨
+  const r = parseReport(p);
+  assert.equal(r.blocked, "");
+  assert.equal(r.next, "");
+});
