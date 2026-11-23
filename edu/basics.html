@@ -371,12 +371,33 @@ td .sub { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2p
       </table></div>
     </section>
 
+    <section>
+      <h2>AI로 일하기, 그리고 AI로 일하는 시스템 만들기</h2>
+      <p class="tip">여기까지는 AI에게 일을 시키고 결과를 확인하는 방법이었습니다. 그런데 같은 일이 매일·매주 반복되면 질문이 바뀝니다. "이번 결과가 맞나?"에서 <b>"다음 달에도, 다른 사람이 돌려도 맞나?"</b>로요. 이때부터는 AI에게 매번 일을 시키기보다, AI로 <b>일하는 시스템</b>을 만드는 편이 낫습니다.</p>
+      <div class="card scroll"><table>
+        <tr><th>구분</th><th>AI로 일하기</th><th>AI로 일하는 시스템 만들기</th></tr>
+        <tr><td class="k">예</td><td>메일 한 통 요약, 회신 초안</td><td>매일 선적 메일을 읽어 OPO에서 고칠 곳을 정리하는 도구</td></tr>
+        <tr><td class="k">잘 맞는 일</td><td>한 번 하고 끝나는 일, 매번 상황이 다른 일</td><td>같은 형식으로 반복되는 일</td></tr>
+        <tr><td class="k">결과</td><td>물을 때마다 조금씩 달라짐</td><td>같은 입력이면 항상 같은 결과</td></tr>
+        <tr><td class="k">믿을 수 있는 이유</td><td>사람이 매번 결과를 읽고 확인</td><td>규칙을 코드로 고정하고, 실제 자료로 만든 시험을 고칠 때마다 다시 돌림</td></tr>
+        <tr><td class="k">틀렸을 때</td><td>그 답을 버리고 다시 물음</td><td>원인을 찾아 규칙을 고치면 다음부터 같은 실수를 하지 않음</td></tr>
+        <tr><td class="k">사람의 역할</td><td>결과를 매번 검토</td><td>기준을 정하고, 시험 통과를 확인하고, 예외만 판단</td></tr>
+      </table></div>
+      <div class="card"><ol class="rows">
+        <li><span class="no">1</span><span><b>근거를 남긴다</b><span class="sub">값마다 어느 메일·파일·줄에서 나왔는지 같이 보여 줍니다. 사람은 근거만 보고 판단할 수 있습니다.</span></span></li>
+        <li><span class="no">2</span><span><b>시험으로 확인한다</b><span class="sub">실제 자료로 정답지를 만들어 두고, 규칙을 고칠 때마다 전부 다시 돌립니다. 예: OPO 도구는 고칠 때마다 시험 309개를 다시 통과시킵니다.</span></span></li>
+        <li><span class="no">3</span><span><b>모르면 비우고 사람에게 넘긴다</b><span class="sub">애매한 건은 추측해 채우지 않고 "확인 필요"로 표시합니다.</span></span></li>
+        <li><span class="no">4</span><span><b>원본은 건드리지 않는다</b><span class="sub">원본은 읽기만 하고, 결과는 제안·초안으로 냅니다. 반영은 사람이 합니다.</span></span></li>
+      </ol></div>
+      <p class="tip">이런 시스템을 코드 없이 말로 만드는 방법이 다음 장의 <b>바이브 코딩</b>입니다.</p>
+    </section>
+
     <div class="next"><button data-go="vibe">다음: 바이브 코딩 →</button></div>
   </div>
 
   <!-- ───────────── 2. 바이브 코딩 ───────────── -->
   <div class="page" id="pg-vibe" hidden>
-    <p class="lead">바이브 코딩은 만들고 싶은 것을 말로 설명하면 AI가 프로그램을 만들고, 사람은 실행해 보고 고쳐 달라고 요청하는 방식입니다. 코드를 쓰는 능력보다 <b>무엇을 만들지 설명하는 능력</b>과 <b>결과를 확인하는 습관</b>이 중요합니다.</p>
+    <p class="lead">바이브 코딩은 앞 장의 "AI로 일하는 시스템"을 만드는 방법입니다. 만들고 싶은 것을 말로 설명하면 AI가 프로그램을 만들고, 사람은 실행해 보고 고쳐 달라고 요청하는 방식입니다. 코드를 쓰는 능력보다 <b>무엇을 만들지 설명하는 능력</b>과 <b>결과를 확인하는 습관</b>이 중요합니다.</p>
 
     <section>
       <h2>진행 방식</h2>
