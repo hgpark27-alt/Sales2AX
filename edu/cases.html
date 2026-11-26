@@ -145,6 +145,8 @@ td small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px
 .demo-img[hidden] { display: none; }
 .demo-img img { display: block; max-width: 100%; max-height: 320px; border-radius: 10px; }
 @media (max-width: 640px) { .demo-steps { grid-template-columns: 1fr; } .demo-steps > div { border-right: 0; border-bottom: 1px solid var(--line); } .demo-steps > div:last-child { border-bottom: 0; } }
+/* 부록 숨김 (2026-11-26 요청). 다시 넣으려면 이 규칙 한 덩어리만 지우면 됨 */
+button[data-p="env"], .next:has(> button[data-go="env"]), #pg-env, .apx-ref { display: none !important; }
 /* 부록: 업무 환경 셋업 (원본 업무 환경 셋업 가이드.html, 이 탭 안에서만 적용) */
 #pg-env { --panel: #fff; --code-bg: #f7f8fa; --mono: "Cascadia Code", Consolas, "D2Coding", "Malgun Gothic", monospace; gap: 0; font-size: 15px; }
 #pg-env .apx-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 18px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 6px; }
@@ -357,7 +359,7 @@ td small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px
         <div><span class="step">2</span><span class="t">업무 폴더에서 실행</span><span class="sub">처음에는 원본 대신 복사본으로</span></div>
         <div><span class="step">3</span><span class="t">반복 업무 하나 지시</span><span class="sub">입력·원하는 결과를 말로 설명</span></div>
       </div>
-      <p class="tip">업무 환경 셋업 방법은 이 자료의 <a href="#env" data-go="env">부록</a>, 바이브 코딩 기초는 별도 자료 <b>「AI 기초와 바이브 코딩」</b>에 정리되어 있습니다.</p>
+      <p class="tip"><span class="apx-ref">업무 환경 셋업 방법은 이 자료의 <a href="#env" data-go="env">부록</a>, </span>바이브 코딩 기초는 별도 자료 <b>「AI 기초와 바이브 코딩」</b>에 정리되어 있습니다.</p>
     </section>
 
     <section id="cases">
