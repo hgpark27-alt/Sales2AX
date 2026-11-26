@@ -3,7 +3,7 @@ import { loadReports, saveReport, countVisit, todayVisits, resetVisits } from ".
 
 // ── 팀원·일정 (바꿀 때는 firestore.rules의 팀원 목록도 같이) ──
 const MEMBERS = [
-  { id: "dave", name: "Dave" }, { id: "eric", name: "Eric" }, { id: "ethan", name: "Ethan" },
+  { id: "dave", name: "Dave" }, { id: "ethan", name: "Ethan" },
   { id: "rodrigo", name: "Rodrigo" }, { id: "sumin", name: "Sumin" }
 ];
 const WEEKS = [

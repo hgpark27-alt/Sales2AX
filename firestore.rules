@@ -9,7 +9,7 @@ service cloud.firestore {
     function numOrNull(v, lo, hi) { return v == null || ((v is int || v is float) && v >= lo && v <= hi); }
     function valid(d) {
       return d.keys().hasOnly(['member','createdAt','title','task','asis','tobe','direction','tools','stage','progress','minNow','minAfter','cycle','done','blocked','next','raw'])
-        && d.member in ['dave','eric','ethan','rodrigo','sumin']
+        && d.member in ['dave','ethan','rodrigo','sumin']
         && d.createdAt == request.time
         && str(d.title, 100)
         && str(d.task, 300) && str(d.asis, 1000) && str(d.tobe, 1000)

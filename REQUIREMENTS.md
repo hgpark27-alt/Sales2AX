@@ -5,7 +5,7 @@
 A: 4주 AI 교육(AX 챌린지) 동안 팀원별 자동화 과제 진행 상황을 한 곳에 모으고, 팀장님이 진척도·AX 방향·예상 단축 효과를 한눈에 보기 위해. (사용자 지시 11/19)
 
 ### Q2. 누가 쓰는가?
-A: 팀원 5명(Dave, Eric, Ethan, Rodrigo, Sumin, 11/19·11/20 사용자 지정)이 보고하고, 황성희 팀장님이 요약 페이지를 본다.
+A: 팀원 4명(Dave, Ethan, Rodrigo, Sumin, 11/19·11/20·11/26 사용자 지정)이 보고하고, 황성희 팀장님이 요약 페이지를 본다.
 
 ### Q3. 어디에 배포하고 어디에 저장하는가?
 A: GitHub Pages(https://github.com/hgpark27-alt/Sales2AX)로 배포, Firebase Firestore에 저장. (사용자 지시)
